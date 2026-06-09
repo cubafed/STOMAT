@@ -1,0 +1,185 @@
+/* ============================================================
+   МВП Стоматология — Design Tokens
+   Palette: white + clinical blue (#3B5BFF)
+   Type: Manrope (display) + Golos Text (UI/body)
+   ============================================================ */
+
+:root {
+  /* --- Surfaces --- */
+  --bg: #FFFFFF;
+  --bg-soft: #F5F7FC;       /* faint blue-gray section bg */
+  --bg-tint: #ECF0FF;       /* blue tint blocks */
+  --bg-mist: #F9FAFE;
+  --panel-dark: #0A0F1F;    /* radiograph viewer / dark sections */
+  --panel-dark-2: #11182E;
+  --panel-dark-3: #1A2440;
+
+  /* --- Ink / text --- */
+  --ink: #0B1020;
+  --ink-2: #39425A;
+  --ink-3: #6A7390;
+  --ink-4: #9AA2BB;
+  --on-dark: #EAF0FF;
+  --on-dark-2: #9FB0D6;
+  --on-dark-3: #5E6E96;
+
+  /* --- Brand --- */
+  --primary: #3B5BFF;
+  --primary-600: #2A46E6;
+  --primary-700: #1E36BF;
+  --primary-300: #8AA0FF;
+  --primary-tint: #ECF0FF;
+  --primary-tint-2: #DCE3FF;
+
+  /* --- AI / accent --- */
+  --cyan: #12B8D6;
+  --cyan-tint: #E1F7FB;
+  --violet: #7C5CFF;
+
+  /* --- Functional / medical --- */
+  --good: #18B27A;
+  --good-tint: #E2F6EE;
+  --warn: #F0A12E;
+  --warn-tint: #FCF0DC;
+  --danger: #F0533F;
+  --danger-tint: #FCE6E2;
+
+  /* --- Lines --- */
+  --line: #E6E9F4;
+  --line-2: #D7DCEC;
+  --line-dark: #21294A;
+
+  /* --- Radius --- */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 30px;
+  --r-pill: 999px;
+
+  /* --- Shadow --- */
+  --sh-sm: 0 1px 2px rgba(11,16,32,.06), 0 1px 1px rgba(11,16,32,.04);
+  --sh-md: 0 8px 24px -8px rgba(20,30,80,.16), 0 2px 6px rgba(20,30,80,.06);
+  --sh-lg: 0 30px 60px -22px rgba(20,30,80,.28), 0 8px 20px -10px rgba(20,30,80,.14);
+  --sh-blue: 0 18px 40px -14px rgba(59,91,255,.45);
+  --sh-soft: 0 2px 10px rgba(20,30,80,.05);
+
+  /* --- Type families --- */
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-ui: "Golos Text", system-ui, sans-serif;
+
+  /* --- Layout --- */
+  --maxw: 1200px;
+  --gutter: clamp(20px, 5vw, 64px);
+  --nav-h: 70px;
+}
+
+/* ============================================================
+   Reset / base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.55;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5 { font-family: var(--font-display); font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; color: var(--ink); }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { font-family: inherit; cursor: pointer; }
+::selection { background: var(--primary); color: #fff; }
+
+/* ============================================================
+   Reusable utilities
+   ============================================================ */
+.wrap { max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gutter); }
+.wrap-wide { max-width: 1340px; margin: 0 auto; padding-inline: var(--gutter); }
+
+.eyebrow {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.eyebrow::before {
+  content: "";
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-tint);
+}
+.eyebrow.on-dark { color: var(--primary-300); }
+.eyebrow.on-dark::before { background: var(--primary-300); box-shadow: 0 0 0 4px rgba(138,160,255,.18); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 16px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  padding: 13px 24px;
+  transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .25s, background .2s, color .2s, border-color .2s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn:active { transform: translateY(1px) scale(.99); }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: var(--sh-blue); }
+.btn-primary:hover { background: var(--primary-600); transform: translateY(-2px); box-shadow: 0 22px 46px -14px rgba(59,91,255,.55); }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-2); }
+.btn-ghost:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-tint); }
+.btn-dark { background: var(--ink); color: #fff; }
+.btn-dark:hover { background: #1b2444; transform: translateY(-2px); }
+.btn-light { background: #fff; color: var(--ink); box-shadow: var(--sh-md); }
+.btn-light:hover { transform: translateY(-2px); box-shadow: var(--sh-lg); }
+.btn-sm { padding: 9px 16px; font-size: 14px; }
+.btn-lg { padding: 16px 30px; font-size: 17px; }
+
+/* Pills / chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13.5px; font-weight: 600;
+  padding: 7px 13px; border-radius: var(--r-pill);
+  background: var(--bg-tint); color: var(--primary-700);
+}
+.chip svg { width: 15px; height: 15px; }
+
+/* Section heading scale */
+.h-display { font-size: clamp(38px, 6.4vw, 76px); }
+.h-1 { font-size: clamp(32px, 4.6vw, 56px); }
+.h-2 { font-size: clamp(26px, 3.4vw, 40px); }
+.h-3 { font-size: clamp(21px, 2.2vw, 27px); }
+.lead { font-size: clamp(17px, 1.5vw, 20px); color: var(--ink-2); line-height: 1.6; }
+.muted { color: var(--ink-3); }
+
+.section { padding-block: clamp(70px, 9vw, 130px); }
+.section-tight { padding-block: clamp(48px, 6vw, 84px); }
+
+/* Reveal animation — visible by DEFAULT; hidden only once JS opts in (.anim-ready) */
+.reveal { opacity: 1; transform: none; transition: opacity .8s cubic-bezier(.16,.8,.3,1), transform .8s cubic-bezier(.16,.8,.3,1); }
+.anim-ready .reveal { opacity: 0; transform: translateY(26px); }
+.anim-ready .reveal.in { opacity: 1; transform: none; }
+.reveal-d1 { transition-delay: .08s; }
+.reveal-d2 { transition-delay: .16s; }
+.reveal-d3 { transition-delay: .24s; }
+.reveal-d4 { transition-delay: .32s; }
+.reveal-d5 { transition-delay: .40s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-ready .reveal { opacity: 1 !important; transform: none !important; }
+  html { scroll-behavior: auto; }
+}

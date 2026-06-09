@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Радикс — рентген, который думает. AI-платформа для стоматологии</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/cine.css">
+</head>
+<body>
+
+<!-- ============ PRELOADER ============ -->
+<div class="preloader" id="preloader">
+  <div class="pre-inner">
+    <div class="pre-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/><rect x="6.2" y="10.7" width="11.6" height="1.5" rx="0.75" fill="#FF5A36"/></svg></div>
+    <div class="pre-row"><span class="pre-label" data-i18n="pre_label">Загрузка · Радикс-Vision</span><span class="pre-pc" id="prePc">0%</span></div>
+    <div class="pre-bar"><i id="preBar"></i></div>
+    <div class="pre-scan"></div>
+  </div>
+</div>
+
+<!-- custom cursor -->
+<div class="cursor-ring" id="cRing"></div>
+<div class="cursor-dot" id="cDot"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand magnetic" href="#top">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/><rect x="6.2" y="10.7" width="11.6" height="1.5" rx="0.75" fill="#FF5A36"/></svg></span>
+      <span><b>Радикс</b><small data-i18n="brand_sub">Стоматология · AI</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#scan" data-i18n="nav_scan">AI-анализ</a>
+      <a href="#pathology" data-i18n="nav_path">Патологии</a>
+      <a href="#calc" data-i18n="nav_calc">Калькулятор</a>
+      <a href="#pricing" data-i18n="nav_pricing">Тарифы</a>
+      <a href="#faq" data-i18n="nav_faq">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <button class="sound-btn magnetic" id="soundBtn" title="Звук" aria-label="sound">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" id="soundIcon"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M16 9a4 4 0 0 1 0 6" class="wave"/></svg>
+      </button>
+      <div class="lang" id="lang"><button data-lang="ru" class="active">RU</button><button data-lang="en">EN</button></div>
+      <a class="btn btn-out btn-sm magnetic" href="Вход и регистрация.html" style="padding:9px 16px"><span class="lab" data-i18n="nav_login">Войти</span></a>
+      <a class="btn btn-coral btn-sm magnetic" href="Вход и регистрация.html#reg"><span class="lab" data-i18n="cta_main">Попробовать бесплатно</span></a>
+      <button class="nav-burger magnetic" id="burger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="top">
+  <div class="hero-bgword" aria-hidden="true">AI</div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-i18n="hero_eyebrow">AI-платформа для стоматологии</span>
+        <h1 class="hero-h huge">
+          <span class="line"><span class="clip-line" data-i18n="hero_l1">Рентген,</span></span>
+          <span class="line"><span class="clip-line" data-i18n="hero_l2">который</span></span>
+          <span class="line"><span class="clip-line it" data-i18n="hero_l3">думает.</span></span>
+        </h1>
+        <p class="hero-lead reveal d2" data-i18n="hero_lead">Радикс находит патологии на снимке за секунды, ведёт карточку пациента и собирает план лечения — с искусственным интеллектом в каждом шаге приёма.</p>
+        <div class="hero-cta reveal d3">
+          <a class="btn btn-coral btn-lg magnetic" href="Продукт МВП.html"><span class="lab" data-i18n="hero_cta1">Открыть продукт</span> <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn-out btn-lg magnetic" href="#scan"><span class="lab" data-i18n="hero_cta2">Смотреть, как работает</span></a>
+        </div>
+        <div class="hero-meta reveal d4">
+          <div><div class="m-n" data-count="98.2" data-decimals="1" data-suffix="%">98,2%</div><div class="m-l" data-i18n="hero_m1">точность детекции находок</div></div>
+          <div><div class="m-n">&lt;5 <span style="font-size:18px" data-i18n="sec">сек</span></div><div class="m-l" data-i18n="hero_m2">на анализ одного снимка</div></div>
+          <div><div class="m-n" data-count="34" data-prefix="+" data-suffix="%">+34%</div><div class="m-l" data-i18n="hero_m3">принятых планов лечения</div></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="tooth3d-wrap" id="tooth3dWrap">
+          <div class="t-orbit"></div><div class="t-orbit b"></div>
+          <div class="tooth3d" id="tooth3d"></div>
+          <div class="t-node n1 reveal d2"><i style="background:var(--coral)"></i><span data-i18n="tn1">Кариес · 94%</span></div>
+          <div class="t-node n2 reveal d3"><i style="background:var(--warn)"></i><span data-i18n="tn2">Камень · 81%</span></div>
+          <div class="t-node n3 reveal d4"><i style="background:var(--cyan)"></i><span data-i18n="tn3">Пломба · 99%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue"><span data-i18n="scroll">Скролл</span><span class="ln"></span></div>
+</header>
+
+<!-- ============ STICKY SCAN SEQUENCE ============ -->
+<section class="scan-seq" id="scan">
+  <div class="scan-sticky">
+    <div class="scan-copy">
+      <span class="eyebrow od" data-i18n="scan_eyebrow">AI-анализ снимка · в реальном времени</span>
+      <div class="scan-step" id="scanSteps"></div>
+      <div class="scan-progress" id="scanProg"></div>
+    </div>
+    <div class="scan-film-wrap">
+      <div class="scan-film" id="scanFilm">
+        <svg class="arch" id="scanArch" viewBox="0 0 680 510" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="grade" id="scanGrade"></div>
+        <div class="scan-line2" id="scanLine"></div>
+        <div id="scanDets"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MARQUEE ============ -->
+<section class="section cream2" style="padding-block:46px">
+  <div class="wrap" style="text-align:center;margin-bottom:26px"><span class="eyebrow b" style="justify-content:center" data-i18n="logos_label">Нам доверяют клиники и частные практики</span></div>
+  <div class="marquee"><div class="marquee-track" id="marquee"></div></div>
+</section>
+
+<!-- ============ PATHOLOGY + INTERACTIVE TOOTH CHART ============ -->
+<section class="section" id="pathology">
+  <div class="wrap">
+    <div class="sec-head reveal" style="margin-bottom:54px">
+      <span class="eyebrow">01 — <span data-i18n="path_eyebrow">Распознавание патологий</span></span>
+      <h2 class="h2" data-i18n="path_h">Нажмите на зуб — посмотрите,<br>что видит ИИ</h2>
+    </div>
+    <div class="tcwrap">
+      <div class="tchart reveal" id="toothChart"></div>
+      <div class="tinfo reveal d2" id="toothInfo"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BEFORE / AFTER (dark) ============ -->
+<section class="section dark" id="compare">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow">02 — <span data-i18n="ba_eyebrow">Сравнение до / после</span></span>
+        <h2 class="h2" data-i18n="ba_h">Динамика лечения,<br>которую видно сразу</h2>
+        <p class="lead" data-i18n="ba_p">Сопоставляйте снимки разных визитов одним движением. Переключайтесь между клиническими случаями и показывайте пациенту результат наглядно.</p>
+        <div class="ba-tabs" id="baTabs"></div>
+      </div>
+      <div class="frow-media reveal d2">
+        <div class="ba" id="ba">
+          <div class="lay before"><svg class="arch" id="baBefore" viewBox="0 0 680 430" preserveAspectRatio="xMidYMid slice"></svg></div>
+          <div class="lay after"><svg class="arch" id="baAfter" viewBox="0 0 680 430" preserveAspectRatio="xMidYMid slice"></svg></div>
+          <div class="tg l" id="baTagL">До</div><div class="tg r" id="baTagR">После</div>
+          <div class="hd" id="baHd"><div class="kb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 7-5 5 5 5M15 7l5 5-5 5"/></svg></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PATIENT CARD ============ -->
+<section class="section">
+  <div class="wrap">
+    <div class="frow flip">
+      <div class="frow-copy reveal">
+        <span class="eyebrow">03 — <span data-i18n="pt_eyebrow">Карточка пациента</span></span>
+        <h2 class="h2" data-i18n="pt_h">Вся история пациента —<br>в одном месте</h2>
+        <p class="lead" data-i18n="pt_p">Снимки, находки, планы, визиты и переписка в единой карточке. Передача пациента между врачами — без потери контекста.</p>
+        <ul class="flist">
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l1">Зубная формула с историей по каждому зубу</span></li>
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l2">Таймлайн визитов и выполненных работ</span></li>
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l3">Согласия, документы и фото в один клик</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal d2"><div class="media mock" id="patientMock"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI ASSISTANT (dark) ============ -->
+<section class="section dark" id="assistant">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow">04 — <span data-i18n="as_eyebrow">AI-консультант</span></span>
+        <h2 class="h2" data-i18n="as_h">Спросите ИИ —<br>он знает пациента</h2>
+        <p class="lead" data-i18n="as_p">Встроенный ассистент опирается на снимки и историю: предложит диагноз, подскажет протокол и поможет объяснить лечение простыми словами.</p>
+        <ul class="flist">
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="as_l1">Ответы со ссылкой на находки на снимке</span></li>
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="as_l2">Объяснение для пациента и для врача — в один тап</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal d2">
+        <div class="media mock" style="background:#fff">
+          <div class="mock-bar"><i></i><i></i><i></i><span class="mt" data-i18n="as_mock">Радикс Ассистент</span></div>
+          <div class="chat" id="chatDemo"></div>
+          <div class="chat-in"><span class="cif" data-i18n="as_input">Спросите про снимок пациента…</span><span class="cis"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 18 9-18 9 4-9-4-9Z"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLANS ============ -->
+<section class="section">
+  <div class="wrap">
+    <div class="frow flip">
+      <div class="frow-copy reveal">
+        <span class="eyebrow">05 — <span data-i18n="pl_eyebrow">Планы лечения и сметы</span></span>
+        <h2 class="h2" data-i18n="pl_h">План и смета —<br>за пару кликов</h2>
+        <p class="lead" data-i18n="pl_p">Из подтверждённых находок Радикс собирает структурированный план, считает стоимость и оформляет его так, чтобы пациент понял и согласился.</p>
+        <ul class="flist">
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pl_l1">Этапы лечения с приоритетом и стоимостью</span></li>
+          <li><span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pl_l2">Альтернативы и расчёт по страховке</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal d2"><div class="media mock" id="planMock"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CALCULATOR ============ -->
+<section class="section cream2" id="calc">
+  <div class="wrap">
+    <div class="sec-head center reveal" style="margin-bottom:52px">
+      <span class="eyebrow" style="justify-content:center">06 — <span data-i18n="calc_eyebrow">Калькулятор выгоды</span></span>
+      <h2 class="h2" data-i18n="calc_h">Сколько сэкономит ваша клиника</h2>
+    </div>
+    <div class="calc reveal">
+      <div class="calc-in">
+        <div class="calc-field">
+          <div class="cf-top"><span class="cf-l" data-i18n="calc_f1">Пациентов в день</span><span class="cf-v" id="calcV1">24</span></div>
+          <input type="range" class="range" id="calcR1" min="5" max="80" value="24">
+        </div>
+        <div class="calc-field">
+          <div class="cf-top"><span class="cf-l" data-i18n="calc_f2">Врачей в клинике</span><span class="cf-v" id="calcV2">4</span></div>
+          <input type="range" class="range" id="calcR2" min="1" max="30" value="4">
+        </div>
+        <div class="calc-field">
+          <div class="cf-top"><span class="cf-l" data-i18n="calc_f3">Минут на описание снимка</span><span class="cf-v" id="calcV3">6</span></div>
+          <input type="range" class="range" id="calcR3" min="2" max="15" value="6">
+        </div>
+        <p class="lead" style="font-size:14px;color:var(--ink-3)" data-i18n="calc_note">Радикс берёт описание снимков на себя и ускоряет согласование плана. Расчёт ориентировочный.</p>
+      </div>
+      <div class="calc-out">
+        <div class="co-item"><div class="co-l" data-i18n="calc_o1">Экономия времени в месяц</div><div class="co-n cyan" id="calcOut1">— ч</div><div class="co-s" data-i18n="calc_o1s">часов рабочего времени врачей</div></div>
+        <div class="co-item"><div class="co-l" data-i18n="calc_o2">Дополнительный доход в месяц</div><div class="co-n coral" id="calcOut2">— ₽</div><div class="co-s" data-i18n="calc_o2s">за счёт принятых планов и приёмов</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3D MODEL + METRICS (dark) ============ -->
+<section class="section dark" id="model3d">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow">07 — <span data-i18n="td_eyebrow">3D-модель полости рта</span></span>
+        <h2 class="h2" data-i18n="td_h">Объясняйте<br>на 3D-модели</h2>
+        <p class="lead" data-i18n="td_p">Кариес, налёт, воспаление дёсен и коронки отображаются прямо на интерактивной 3D-модели — пациенту проще понять, что происходит.</p>
+        <div class="hero-cta"><a class="btn btn-light magnetic" href="Продукт МВП.html"><span class="lab" data-i18n="td_cta">Открыть 3D-вид</span></a></div>
+      </div>
+      <div class="frow-media reveal d2" id="model3dMock"></div>
+    </div>
+    <div class="steps" id="metrics" style="margin-top:clamp(70px,9vw,120px)"></div>
+  </div>
+</section>
+
+<!-- ============ WORKFLOW ============ -->
+<section class="section" id="workflow">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" style="justify-content:center">08 — <span data-i18n="wf_eyebrow">Как это работает</span></span>
+      <h2 class="h2" data-i18n="wf_h">Четыре шага от снимка к согласию</h2>
+    </div>
+    <div class="steps" id="steps"></div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="section cream2" id="pricing">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" style="justify-content:center">09 — <span data-i18n="pr_eyebrow">Тарифы</span></span>
+      <h2 class="h2" data-i18n="pr_h">Начните бесплатно,<br>растите с клиникой</h2>
+      <p class="lead" data-i18n="pr_p">Без привязки оборудования. Оплата за активных врачей. Отмена в любой момент.</p>
+    </div>
+    <div class="pricing" id="pricing"></div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" style="justify-content:center">10 — <span data-i18n="fq_eyebrow">Вопросы</span></span>
+      <h2 class="h2" data-i18n="fq_h">Частые вопросы</h2>
+    </div>
+    <div class="faq" id="faq"></div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="section dark final" id="cta">
+  <div class="wrap">
+    <span class="eyebrow" style="justify-content:center" data-i18n="cta_eyebrow">Начните сегодня</span>
+    <h2 class="huge" data-i18n="cta_h">Попробуйте<br>бесплатно</h2>
+    <p class="lead" style="max-width:560px;margin:0 auto" data-i18n="cta_p">14 дней полного доступа. Загрузите первый снимок и получите анализ за пять секунд. Карта не требуется.</p>
+    <div class="hero-cta" style="justify-content:center;margin-top:36px">
+      <a class="btn btn-coral btn-lg magnetic" href="Вход и регистрация.html#reg"><span class="lab" data-i18n="cta_b1">Открыть продукт</span> <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a class="btn btn-od btn-lg magnetic" href="#"><span class="lab" data-i18n="cta_b2">Записаться на демо</span></a>
+    </div>
+    <div class="final-steps">
+      <div class="final-step"><b>1</b><span data-i18n="cta_s1">Регистрация за минуту</span></div>
+      <div class="final-step"><b>2</b><span data-i18n="cta_s2">Загрузите снимок</span></div>
+      <div class="final-step"><b>3</b><span data-i18n="cta_s3">Получите анализ и план</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#top"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/><rect x="6.2" y="10.7" width="11.6" height="1.5" rx="0.75" fill="#FF5A36"/></svg></span><span><b style="color:var(--on-dark)">Радикс</b></span></a>
+        <p data-i18n="foot_about">AI-платформа для анализа снимков, ведения пациентов и планирования лечения в стоматологии.</p>
+      </div>
+      <div class="footer-col"><h5 data-i18n="foot_product">Продукт</h5>
+        <a href="#scan" data-i18n="foot_p1">AI-анализ снимков</a><a href="#assistant" data-i18n="foot_p2">AI-консультант</a><a href="#calc" data-i18n="foot_p3">Калькулятор</a><a href="Продукт МВП.html" data-i18n="foot_p4">Демо продукта</a></div>
+      <div class="footer-col"><h5 data-i18n="foot_company">Компания</h5>
+        <a href="#" data-i18n="foot_c1">О нас</a><a href="#" data-i18n="foot_c2">Блог</a><a href="#" data-i18n="foot_c3">Вакансии</a><a href="#" data-i18n="foot_c4">Контакты</a></div>
+      <div class="footer-col"><h5 data-i18n="foot_legal">Поддержка</h5>
+        <a href="#faq" data-i18n="foot_l1">FAQ</a><a href="#" data-i18n="foot_l2">Документация</a><a href="#" data-i18n="foot_l3">Безопасность данных</a><a href="#" data-i18n="foot_l4">Конфиденциальность</a></div>
+    </div>
+    <div class="footer-bot"><span>© 2026 Радикс Стоматология</span><span data-i18n="foot_made">Сделано для стоматологов · не является медицинским заключением</span></div>
+  </div>
+</footer>
+
+<script src="assets/cine.js"></script>
+</body>
+</html>
+
+<style id="__om-edit-overrides">
+#tooth3d >div:nth-child(16) >svg { height: 14px !important }
+#tooth3d >div:nth-child(16) >svg { height: 14px !important }
+#tooth3d >div:nth-child(16) >svg { height: 14px !important }
+#tooth3d >div:nth-child(16) >svg { height: 20000px !important }
+#tooth3d >div:nth-child(16) >svg { height: 20000px !important }
+#tooth3d >div:nth-child(16) >svg { height: 20px !important }
+#tooth3d >div:nth-child(16) >svg { height: 149px !important }
+#tooth3d >div:nth-child(11) { width: 2px !important }
+#tooth3d >div:nth-child(11) { width: 39999px !important }
+#tooth3d >div:nth-child(11) { width: 39px !important }
+#tooth3d >div:nth-child(11) { width: 3px !important }
+#tooth3d >div:nth-child(11) { width: 251px !important }
+</style>

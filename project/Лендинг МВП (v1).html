@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>МВП Стоматология — AI-платформа для анализа снимков и работы с пациентами</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/landing.css">
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav" id="nav">
+  <div class="wrap-wide">
+    <a class="brand" href="#top">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/></svg>
+      </span>
+      <span>МВП<small data-i18n="brand_sub">Стоматология · AI</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#features" data-i18n="nav_features">Возможности</a>
+      <a href="#analysis" data-i18n="nav_analysis">AI-анализ</a>
+      <a href="#workflow" data-i18n="nav_workflow">Как работает</a>
+      <a href="#pricing" data-i18n="nav_pricing">Тарифы</a>
+      <a href="#faq" data-i18n="nav_faq">FAQ</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-toggle" id="langToggle">
+        <button data-lang="ru" class="active">RU</button>
+        <button data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="Продукт МВП.html" data-i18n="nav_demo">Демо продукта</a>
+      <a class="btn btn-primary btn-sm" href="#cta" data-i18n="cta_main">Попробовать бесплатно</a>
+      <button class="nav-burger" id="burger" aria-label="menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero" id="top">
+  <div class="wrap-wide">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-i18n="hero_eyebrow">AI-платформа для стоматологии</span>
+        <h1 class="h-display reveal reveal-d1">
+          <span data-i18n="hero_h1_a">Анализируйте снимки</span><br>
+          <span class="grad" data-i18n="hero_h1_b">за секунды, а не минуты</span>
+        </h1>
+        <p class="lead reveal reveal-d2" data-i18n="hero_lead">МВП находит кариес, зубной камень и патологии на рентгене, ведёт карточку пациента и помогает объяснить план лечения — с искусственным интеллектом в каждом шаге.</p>
+        <div class="hero-cta reveal reveal-d3">
+          <a class="btn btn-primary btn-lg" href="#cta" data-i18n="cta_main2">Попробовать бесплатно</a>
+          <a class="btn btn-ghost btn-lg" href="Продукт МВП.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <span data-i18n="hero_watch">Открыть продукт</span>
+          </a>
+        </div>
+        <div class="hero-trust reveal reveal-d4">
+          <div class="t-item"><span class="t-num" data-count="98.2" data-decimals="1" data-suffix="%">98,2%</span><span class="t-lbl" data-i18n="hero_stat1">точность детекции</span></div>
+          <div class="t-div"></div>
+          <div class="t-item"><span class="t-num">&lt;5 сек</span><span class="t-lbl" data-i18n="hero_stat2">на анализ снимка</span></div>
+          <div class="t-div"></div>
+          <div class="t-item"><span class="t-num" data-count="34" data-prefix="+" data-suffix="%">+34%</span><span class="t-lbl" data-i18n="hero_stat3">принятых планов</span></div>
+        </div>
+      </div>
+
+      <!-- Radiograph viewer -->
+      <div class="hero-visual reveal reveal-d2">
+        <div class="viewer">
+          <div class="viewer-top">
+            <div class="vt-l"><span class="viewer-dot"></span><span data-i18n="viewer_status">МВП Анализ · снимок обработан</span></div>
+            <div class="vt-r">
+              <span class="viewer-tag">Bitewing · 2.4 МП</span>
+              <span class="viewer-tag" data-i18n="viewer_patient">Пациент №2048</span>
+            </div>
+          </div>
+          <div class="film" id="film">
+            <svg class="arch" id="archSvg" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+            <div class="scanline"></div>
+            <div class="det-layer" id="detLayer"></div>
+          </div>
+          <div class="viewer-foot">
+            <div class="readout">
+              <span class="r-pill"><i style="background:var(--danger)"></i><span data-i18n="ro_caries">Кариес · 2</span></span>
+              <span class="r-pill"><i style="background:var(--warn)"></i><span data-i18n="ro_tartar">Камень · 1</span></span>
+              <span class="r-pill"><i style="background:var(--cyan)"></i><span data-i18n="ro_resto">Пломба · 1</span></span>
+            </div>
+            <span class="conf" data-i18n="viewer_model">модель МВП-Vision 3.1</span>
+          </div>
+        </div>
+
+        <div class="floating-card fc-1">
+          <span class="fc-icon" style="background:var(--good-tint);color:var(--good)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <div><div class="fc-t" data-i18n="float1_t">План готов</div><div class="fc-s" data-i18n="float1_s">смета сформирована</div></div>
+        </div>
+        <div class="floating-card fc-2">
+          <span class="fc-icon" style="background:var(--primary-tint);color:var(--primary)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 8v4M4.9 4.9l2.8 2.8m8.6 8.6 2.8 2.8M4.9 19.1l2.8-2.8m8.6-8.6 2.8-2.8"/></svg>
+          </span>
+          <div><div class="fc-t" data-i18n="float2_t">AI-ассистент</div><div class="fc-s" data-i18n="float2_s">отвечает на вопросы</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== PACKAGE / BUNDLE (Halo-style) ===================== -->
+<section class="section-tight" id="package">
+  <div class="wrap">
+    <div class="pkg-grid">
+      <div class="pkg-copy reveal">
+        <span class="eyebrow" data-i18n="pkg_eyebrow">Платформа МВП</span>
+        <h2 class="h-1" style="margin-top:16px" data-i18n="pkg_h">Весь цифровой приём — в одной подписке</h2>
+        <p class="lead" style="margin-top:18px" data-i18n="pkg_p">Один аккаунт открывает доступ ко всем модулям: от анализа снимков искусственным интеллектом до планов лечения и интеграции с вашей клиникой.</p>
+        <div class="hero-cta" style="margin-top:26px">
+          <a class="btn btn-dark" href="#pricing" data-i18n="pkg_cta1">Смотреть тарифы</a>
+          <a class="btn btn-ghost" href="Продукт МВП.html" data-i18n="pkg_cta2">Открыть продукт</a>
+        </div>
+      </div>
+      <div class="pkg-items reveal reveal-d1">
+        <div class="pkg-item"><div class="pi-n" data-suffix="∞">∞</div><div class="pi-l" data-i18n="pkg_i1l">AI-анализов снимков</div><div class="pi-s" data-i18n="pkg_i1s">прицельные, bitewing, ОПТГ, КЛКТ</div></div>
+        <div class="pkg-item"><div class="pi-n">24/7</div><div class="pi-l" data-i18n="pkg_i2l">AI-консультант</div><div class="pi-s" data-i18n="pkg_i2s">знает контекст пациента</div></div>
+        <div class="pkg-item"><div class="pi-n" data-suffix="∞">∞</div><div class="pi-l" data-i18n="pkg_i3l">Карточек пациентов</div><div class="pi-s" data-i18n="pkg_i3s">снимки, история, документы</div></div>
+        <div class="pkg-item"><div class="pi-n" data-i18n="pkg_i4n">Авто</div><div class="pi-l" data-i18n="pkg_i4l">Планы и сметы</div><div class="pi-s" data-i18n="pkg_i4s">формируются из находок ИИ</div></div>
+        <div class="pkg-item"><div class="pi-n">3D</div><div class="pi-l" data-i18n="pkg_i5l">Модель полости рта</div><div class="pi-s" data-i18n="pkg_i5s">для объяснения пациенту</div></div>
+        <div class="pkg-item"><div class="pi-n" data-count="6">6</div><div class="pi-l" data-i18n="pkg_i6l">Интеграций с CRM</div><div class="pi-s" data-i18n="pkg_i6s">расписание, касса, API</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LOGO STRIP ===================== -->
+<section class="logos">
+  <div class="wrap" style="flex-direction:column;gap:18px">
+    <span class="l-label" data-i18n="logos_label">Нам доверяют клиники и частные практики</span>
+    <div class="marquee">
+      <div class="marquee-track">
+        <span class="l-item">◈ ДентаЛюкс</span><span class="l-item">◇ Белая Линия</span><span class="l-item">✚ МедСтом</span><span class="l-item">◉ Аврора</span><span class="l-item">❖ Перфект Смайл</span><span class="l-item">✦ Дентал Про</span><span class="l-item">◐ Smile Lab</span>
+        <span class="l-item">◈ ДентаЛюкс</span><span class="l-item">◇ Белая Линия</span><span class="l-item">✚ МедСтом</span><span class="l-item">◉ Аврора</span><span class="l-item">❖ Перфект Смайл</span><span class="l-item">✦ Дентал Про</span><span class="l-item">◐ Smile Lab</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SUBNAV ===================== -->
+<div class="subnav" id="subnav">
+  <div class="wrap-wide">
+    <a href="#analysis" data-i18n="sub_analysis">AI-анализ снимков</a>
+    <a href="#pathology" data-i18n="sub_pathology">Распознавание патологий</a>
+    <a href="#compare" data-i18n="sub_compare">Сравнение до/после</a>
+    <a href="#patient" data-i18n="sub_patient">Карточка пациента</a>
+    <a href="#assistant" data-i18n="sub_assistant">AI-консультант</a>
+    <a href="#plans" data-i18n="sub_plans">Планы и сметы</a>
+    <a href="#model3d" data-i18n="sub_3d">3D-модель</a>
+    <a href="#crm" data-i18n="sub_crm">CRM-интеграция</a>
+  </div>
+</div>
+
+<!-- ===================== FEATURES INTRO ===================== -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" data-i18n="feat_eyebrow">Одна платформа · весь приём</span>
+      <h2 class="h-1" data-i18n="feat_h">От снимка до согласованного плана лечения</h2>
+      <p class="lead" data-i18n="feat_p">МВП объединяет диагностику на основе ИИ, ведение пациента и коммуникацию в одном интерфейсе. Меньше рутины — больше времени на лечение.</p>
+    </div>
+    <div class="fgrid">
+      <div class="fcard reveal" data-ic="scan"></div>
+      <div class="fcard reveal reveal-d1" data-ic="shield"></div>
+      <div class="fcard reveal reveal-d2" data-ic="compare"></div>
+      <div class="fcard reveal" data-ic="user"></div>
+      <div class="fcard reveal reveal-d1" data-ic="chat"></div>
+      <div class="fcard reveal reveal-d2" data-ic="doc"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: ANALYSIS ===================== -->
+<section class="section-tight" id="analysis">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="an_eyebrow">AI-анализ снимков</span>
+        <h3 class="h-2" data-i18n="an_h">Рентген анализируется автоматически за секунды</h3>
+        <p class="lead" data-i18n="an_p">Загрузите прицельный, bitewing или панорамный снимок — МВП-Vision разметит находки, оценит уверенность и подсветит зоны, требующие внимания.</p>
+        <ul class="frow-list">
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="an_l1">Поддержка прицельных, bitewing, ОПТГ и КЛКТ-срезов</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="an_l2">Оценка уверенности по каждой находке в процентах</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="an_l3">Врач подтверждает или отклоняет — ИИ остаётся ассистентом</span></li>
+        </ul>
+        <div class="hero-cta"><a class="btn btn-dark" href="Продукт МВП.html" data-i18n="an_cta">Посмотреть в продукте →</a></div>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card">
+          <div class="viewer" style="border-radius:0;box-shadow:none;border:none;padding:14px;background:linear-gradient(160deg,#11182e,#0a0f1f)">
+            <div class="viewer-top"><div class="vt-l"><span class="viewer-dot"></span><span data-i18n="an_mock_top">Очередь анализа · 1 из 1</span></div><span class="viewer-tag">МВП-Vision</span></div>
+            <div class="film" id="film2">
+              <svg class="arch" id="archSvg2" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid slice"></svg>
+              <div class="scanline"></div>
+              <div class="det-layer" id="detLayer2"></div>
+            </div>
+            <div class="viewer-foot">
+              <div class="readout"><span class="r-pill" id="rescanCount"><i style="background:var(--good)"></i><span data-i18n="an_found">Найдено: 4</span></span></div>
+              <button class="btn btn-light btn-sm" id="rescanBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+                <span data-i18n="an_rescan">Запустить анализ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: PATHOLOGY ===================== -->
+<section class="section-tight" id="pathology">
+  <div class="wrap">
+    <div class="frow flip">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="pa_eyebrow">Распознавание патологий</span>
+        <h3 class="h-2" data-i18n="pa_h">Кариес, камень, периапикальные изменения — под контролем</h3>
+        <p class="lead" data-i18n="pa_p">Модель обучена на размеченных стоматологами снимках и распознаёт ключевые состояния, расставляя их по приоритету для приёма.</p>
+        <div class="path-list" id="pathList"></div>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card mock">
+          <div class="mock-head"><div class="mock-dots"><i></i><i></i><i></i></div><span class="mock-title" data-i18n="pa_mock_title">Находки · снимок №2048</span></div>
+          <div id="findings" style="padding:18px;display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: COMPARE (before/after) ===================== -->
+<section class="section-tight" id="compare">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="co_eyebrow">Сравнение до / после</span>
+        <h3 class="h-2" data-i18n="co_h">Покажите пациенту прогресс наглядно</h3>
+        <p class="lead" data-i18n="co_p">Сопоставляйте снимки разных визитов одним движением. Идеально, чтобы показать динамику и обосновать рекомендации.</p>
+        <ul class="frow-list">
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="co_l1">Синхронное наложение снимков по датам визита</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="co_l2">Графики динамики: пародонтальные карманы, кровоточивость</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card">
+          <div class="ba" id="ba">
+            <div class="ba-layer ba-before"><svg class="arch" viewBox="0 0 680 510" preserveAspectRatio="xMidYMid slice" id="baBefore"></svg></div>
+            <div class="ba-layer ba-after"><svg class="arch" viewBox="0 0 680 510" preserveAspectRatio="xMidYMid slice" id="baAfter"></svg></div>
+            <div class="ba-tag l" data-i18n="ba_before">Март · до лечения</div>
+            <div class="ba-tag r" data-i18n="ba_after">Сентябрь · после</div>
+            <div class="ba-handle" id="baHandle"><div class="ba-knob"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 7-5 5 5 5M15 7l5 5-5 5"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: PATIENT ===================== -->
+<section class="section-tight" id="patient">
+  <div class="wrap">
+    <div class="frow flip">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="pt_eyebrow">Карточка пациента</span>
+        <h3 class="h-2" data-i18n="pt_h">Вся история пациента в одном месте</h3>
+        <p class="lead" data-i18n="pt_p">Снимки, находки, планы лечения, визиты и переписка — в единой карточке. Передача пациента между врачами без потери контекста.</p>
+        <ul class="frow-list">
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l1">Зубная формула с историей по каждому зубу</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l2">Таймлайн визитов и выполненных работ</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pt_l3">Согласия, документы и фото в один клик</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card mock" id="patientMock"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: AI ASSISTANT (chat) ===================== -->
+<section class="section-tight" id="assistant">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="as_eyebrow">AI-консультант</span>
+        <h3 class="h-2" data-i18n="as_h">Спросите ИИ — он знает контекст пациента</h3>
+        <p class="lead" data-i18n="as_p">Встроенный ассистент опирается на снимки и историю пациента: предложит дифференциальный диагноз, подскажет протокол и поможет объяснить лечение простыми словами.</p>
+        <ul class="frow-list">
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="as_l1">Ответы со ссылкой на конкретные находки на снимке</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="as_l2">Объяснение для пациента и для врача — в один тап</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card mock">
+          <div class="mock-head"><div class="mock-dots"><i></i><i></i><i></i></div><span class="mock-title" data-i18n="as_mock">МВП Ассистент</span></div>
+          <div class="chat" id="chatDemo"></div>
+          <div class="chat-input">
+            <span class="ci-field" data-i18n="as_input">Спросите про снимок пациента…</span>
+            <span class="ci-send"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 18 9-18 9 4-9-4-9Z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURE ROW: PLANS + 3D in dark band ===================== -->
+<section class="section" id="plans">
+  <div class="wrap">
+    <div class="frow">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="pl_eyebrow">Планы лечения и сметы</span>
+        <h3 class="h-2" data-i18n="pl_h">План лечения и смета — за пару кликов</h3>
+        <p class="lead" data-i18n="pl_p">Из подтверждённых находок МВП собирает структурированный план, считает стоимость и оформляет его так, чтобы пациент понял и согласился.</p>
+        <ul class="frow-list">
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pl_l1">Этапы лечения с приоритетом и стоимостью</span></li>
+          <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="pl_l2">Альтернативные варианты и расчёт по страховке</span></li>
+        </ul>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card mock" id="planMock"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3D + CRM band ===================== -->
+<section class="section-tight" id="model3d">
+  <div class="wrap">
+    <div class="band reveal">
+      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center;position:relative" class="band-inner">
+        <div>
+          <span class="eyebrow on-dark" data-i18n="td_eyebrow">3D-модель полости рта</span>
+          <h2 class="h-2" style="margin-top:14px" data-i18n="td_h">Объясняйте на интерактивной 3D-модели</h2>
+          <p class="lead" style="margin-top:14px" data-i18n="td_p">Кариес, налёт, воспаление дёсен и коронки отображаются прямо на 3D-модели — пациенту проще понять, что происходит у него во рту.</p>
+          <div class="hero-cta"><a class="btn btn-light" href="Продукт МВП.html" data-i18n="td_cta">Открыть 3D-вид</a></div>
+        </div>
+        <div class="reveal reveal-d1" id="model3dMock"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CRM ===================== -->
+<section class="section-tight" id="crm">
+  <div class="wrap">
+    <div class="frow flip">
+      <div class="frow-copy reveal">
+        <span class="eyebrow" data-i18n="cr_eyebrow">Интеграция с CRM клиники</span>
+        <h3 class="h-2" data-i18n="cr_h">Работает с вашими системами</h3>
+        <p class="lead" data-i18n="cr_p">МВП синхронизируется с расписанием, карточками и кассой клиники. Анализ и планы попадают прямо в вашу систему — без двойного ввода.</p>
+        <div class="crm-grid" id="crmGrid"></div>
+      </div>
+      <div class="frow-media reveal reveal-d1">
+        <div class="media-card mock" id="crmMock"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== METRICS BAND ===================== -->
+<section class="section">
+  <div class="wrap">
+    <div class="band reveal">
+      <div class="band-inner" style="position:relative">
+        <div class="sec-head" style="max-width:640px">
+          <span class="eyebrow on-dark" data-i18n="me_eyebrow">Результат для клиники</span>
+          <h2 class="h-2" style="margin-top:14px" data-i18n="me_h">Меньше рутины. Больше принятых планов.</h2>
+        </div>
+        <div class="metrics" style="margin-top:38px">
+          <div class="metric"><div class="m-num" data-count="72" data-prefix="−" data-suffix="%">−72%</div><div class="m-lbl" data-i18n="me_1">времени на описание снимка</div></div>
+          <div class="metric"><div class="m-num" data-count="34" data-prefix="+" data-suffix="%">+34%</div><div class="m-lbl" data-i18n="me_2">согласованных планов лечения</div></div>
+          <div class="metric"><div class="m-num" data-count="98.2" data-decimals="1" data-suffix="%">98,2%</div><div class="m-lbl" data-i18n="me_3">точность детекции находок</div></div>
+          <div class="metric"><div class="m-num" data-count="3" data-suffix=" мин">3 мин</div><div class="m-lbl" data-i18n="me_4">средняя экономия на пациенте</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WORKFLOW STEPS ===================== -->
+<section class="section-tight" id="workflow">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" data-i18n="wf_eyebrow">Как это работает</span>
+      <h2 class="h-1" data-i18n="wf_h">Четыре шага от снимка к согласию</h2>
+    </div>
+    <div class="steps" id="steps"></div>
+  </div>
+</section>
+
+<!-- ===================== PRICING ===================== -->
+<section class="section" id="pricing">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" data-i18n="pr_eyebrow">Тарифы</span>
+      <h2 class="h-1" data-i18n="pr_h">Начните бесплатно, растите вместе с клиникой</h2>
+      <p class="lead" data-i18n="pr_p">Без привязки оборудования. Оплата за активных врачей. Отмена в любой момент.</p>
+    </div>
+    <div class="pricing" id="pricing"></div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section class="section-tight" id="faq">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <span class="eyebrow" data-i18n="fq_eyebrow">Вопросы</span>
+      <h2 class="h-1" data-i18n="fq_h">Частые вопросы</h2>
+    </div>
+    <div class="faq" id="faq"></div>
+  </div>
+</section>
+
+<!-- ===================== FINAL CTA ===================== -->
+<section class="section final" id="cta">
+  <div class="wrap">
+    <div class="band reveal">
+      <div class="band-inner" style="position:relative;text-align:center;max-width:680px;margin:0 auto">
+        <span class="eyebrow on-dark" style="justify-content:center" data-i18n="cta_eyebrow">Начните сегодня</span>
+        <h2 class="h-1" style="margin-top:16px" data-i18n="cta_h">Попробуйте МВП бесплатно</h2>
+        <p class="lead" style="margin-top:16px" data-i18n="cta_p">14 дней полного доступа. Загрузите первый снимок и получите анализ за пять секунд. Карта не требуется.</p>
+        <div class="hero-cta" style="justify-content:center;margin-top:30px">
+          <a class="btn btn-primary btn-lg" href="Продукт МВП.html" data-i18n="cta_btn1">Открыть продукт</a>
+          <a class="btn btn-light btn-lg" href="#" data-i18n="cta_btn2">Записаться на демо</a>
+        </div>
+        <div class="final-steps">
+          <div class="final-step"><span class="fs-n">1</span><span data-i18n="cta_s1">Регистрация за минуту</span></div>
+          <div class="final-step"><span class="fs-n">2</span><span data-i18n="cta_s2">Загрузите снимок</span></div>
+          <div class="final-step"><span class="fs-n">3</span><span data-i18n="cta_s3">Получите анализ и план</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#top">
+          <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/></svg></span>
+          <span>МВП</span>
+        </a>
+        <p data-i18n="foot_about">AI-платформа для анализа снимков, ведения пациентов и планирования лечения в стоматологии.</p>
+      </div>
+      <div class="footer-col">
+        <h5 data-i18n="foot_product">Продукт</h5>
+        <a href="#analysis" data-i18n="foot_p1">AI-анализ снимков</a>
+        <a href="#assistant" data-i18n="foot_p2">AI-консультант</a>
+        <a href="#plans" data-i18n="foot_p3">Планы лечения</a>
+        <a href="Продукт МВП.html" data-i18n="foot_p4">Демо продукта</a>
+      </div>
+      <div class="footer-col">
+        <h5 data-i18n="foot_company">Компания</h5>
+        <a href="#" data-i18n="foot_c1">О нас</a>
+        <a href="#" data-i18n="foot_c2">Блог</a>
+        <a href="#" data-i18n="foot_c3">Вакансии</a>
+        <a href="#" data-i18n="foot_c4">Контакты</a>
+      </div>
+      <div class="footer-col">
+        <h5 data-i18n="foot_legal">Поддержка</h5>
+        <a href="#faq" data-i18n="foot_l1">FAQ</a>
+        <a href="#" data-i18n="foot_l2">Документация</a>
+        <a href="#" data-i18n="foot_l3">Безопасность данных</a>
+        <a href="#" data-i18n="foot_l4">Политика конфиденциальности</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 МВП Стоматология. <span data-i18n="foot_rights">Все права защищены.</span></span>
+      <span data-i18n="foot_made">Сделано для стоматологов · не является медицинским заключением</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/landing.js"></script>
+</body>
+</html>
