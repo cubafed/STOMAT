@@ -92,6 +92,12 @@ function Community({ ctx }) {
 function Calendar({ ctx }) {
   const [mode, setMode] = useState("week");
   const [day, setDay] = useState(0);
+  const [bookings, setBookings] = useState(() => RadixStore.get("bookings", []));
+  function bookingAction(b, accept) {
+    const rest = bookings.filter(x => x.id !== b.id);
+    setBookings(rest); RadixStore.set("bookings", rest);
+    ctx.toast(accept ? b.name + " — запись подтверждена, добавим в расписание" : "Заявка " + b.name + " отклонена");
+  }
   const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
   const H = 56;
 
@@ -109,6 +115,20 @@ function Calendar({ ctx }) {
         React.createElement("button", { className: mode === "day" ? "on" : "", onClick: () => setMode("day") }, "День"),
         React.createElement("button", { className: mode === "week" ? "on" : "", onClick: () => setMode("week") }, "Неделя")),
       React.createElement("button", { className: "btn-app pri", onClick: () => ctx.toast("Новая запись на приём") }, React.createElement(Icon, { name: "plus", size: 16 }), "Записать")),
+
+    bookings.length ? React.createElement("div", { className: "card", style: { marginBottom: 18 } },
+      React.createElement(CardHead, { title: "Онлайн-заявки с сайта", icon: "bell",
+        right: React.createElement(Tag, { c: "var(--primary)", tint: "var(--primary-tint)" }, bookings.length) }),
+      React.createElement("div", null, bookings.map((b, i) =>
+        React.createElement("div", { key: b.id, style: { display: "flex", alignItems: "center", gap: 13, padding: "13px 20px", borderBottom: i < bookings.length - 1 ? "1px solid var(--line)" : "none", flexWrap: "wrap" } },
+          React.createElement(Avatar, { name: b.name, color: "#FF5A36", size: 38 }),
+          React.createElement("div", { style: { flex: 1, minWidth: 180 } },
+            React.createElement("div", { style: { fontWeight: 700, fontSize: 14.5 } }, b.name, React.createElement("span", { style: { fontWeight: 500, color: "var(--ink-3)", marginLeft: 8, fontSize: 13 } }, b.phone)),
+            React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, b.service + " · " + b.when + (b.note ? " · «" + b.note + "»" : ""))),
+          React.createElement("div", { style: { display: "flex", gap: 8 } },
+            React.createElement("button", { className: "btn-app pri sm", onClick: () => bookingAction(b, true) }, "Подтвердить"),
+            React.createElement("button", { className: "btn-app gho sm", onClick: () => bookingAction(b, false) }, "Отклонить"))))))
+      : null,
 
     mode === "week"
       ? React.createElement("div", { style: { overflowX: "auto" } },

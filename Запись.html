@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Онлайн-запись — Радикс Стоматология</title>
+<meta name="description" content="Запишитесь на приём в клинику онлайн: выберите услугу, день и время.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='6'%20fill='%230B0B0E'/%3E%3Cpath%20d='M12%203c-2.2%200-3%201.4-5%201.4S4%203.6%204%206.5c0%204%201.4%206%202.2%209.2.5%202%20.8%204.3%202.3%204.3%201.3%200%201.2-2.4%202-4%20.4-.8.8-1.2%201.5-1.2s1.1.4%201.5%201.2c.8%201.6.7%204%202%204%201.5%200%201.8-2.3%202.3-4.3C18.6%2012.5%2020%2010.5%2020%206.5%2020%203.6%2019%204.4%2017%204.4S14.2%203%2012%203Z'%20fill='%23fff'/%3E%3Crect%20x='6.2'%20y='10.7'%20width='11.6'%20height='1.5'%20rx='.75'%20fill='%23FF5A36'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F1EA;--ink:#14110C;--ink2:#4B463C;--ink3:#837C6E;--line:#DCD6C8;--coral:#FF5A36;--coral6:#ED4422;--soft:#FFE6DD;--good:#18A06E;--dark:#0B0B0E;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Golos Text",system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:12px;padding:18px clamp(20px,5vw,60px)}
+.mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--coral),#ff8a5c);display:grid;place-items:center;box-shadow:0 10px 24px -10px var(--coral)}
+.mark svg{width:24px;height:24px}
+.top b{font-family:"Unbounded",sans-serif;font-size:20px}
+.top small{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase}
+.top a{margin-left:auto;color:var(--ink2);text-decoration:none;font-size:14px;font-weight:600;border:1.5px solid var(--line);border-radius:999px;padding:9px 18px}
+.wrap{width:min(640px,94vw);margin:0 auto;flex:1;padding:14px 0 60px}
+h1{font-family:"Unbounded",sans-serif;font-size:clamp(26px,5vw,40px);line-height:1.05;letter-spacing:-.02em;margin:18px 0 8px}
+h1 i{color:var(--coral);font-style:normal}
+.sub{color:var(--ink3);margin-bottom:26px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:clamp(20px,4vw,32px);box-shadow:0 30px 70px -40px rgba(30,20,8,.35)}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin:18px 0 7px}
+label:first-child{margin-top:0}
+input,select,textarea{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:13px;font:inherit;font-size:15px;background:#fff;color:var(--ink);outline:none;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--coral)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 13px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink2);transition:all .15s}
+.chip small{display:block;font-weight:500;font-size:11px;color:var(--ink3)}
+.chip.on{border-color:var(--coral);background:var(--soft);color:var(--coral6)}
+.chip.on small{color:var(--coral6)}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
+.btn{width:100%;margin-top:24px;padding:16px;border:none;border-radius:999px;background:var(--coral);color:#fff;font:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn:hover{background:var(--coral6)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.ok{text-align:center;padding:30px 10px}
+.ok .ic{width:70px;height:70px;border-radius:50%;background:#E1F4EC;color:var(--good);display:grid;place-items:center;margin:0 auto 18px;font-size:30px}
+.ok h2{font-family:"Unbounded",sans-serif;font-size:24px;margin-bottom:10px}
+.ok p{color:var(--ink2);line-height:1.6}
+.foot{text-align:center;color:var(--ink3);font-size:12.5px;padding:20px}
+.err{color:var(--coral6);font-size:13px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/><rect x="6.2" y="10.7" width="11.6" height="1.5" rx="0.75" fill="#FF5A36"/></svg></span>
+  <span><b>Радикс</b><small>Стоматология · AI</small></span>
+  <a href="Лендинг МВП.html">На сайт</a>
+</div>
+
+<div class="wrap">
+  <h1>Запись на приём <i>онлайн</i></h1>
+  <p class="sub">Выберите услугу, день и время — подтверждение придёт в SMS. Это занимает меньше минуты.</p>
+
+  <div class="card" id="formCard">
+    <label>Ваше имя</label>
+    <input id="fName" placeholder="Имя и фамилия" autocomplete="name">
+    <label>Телефон</label>
+    <input id="fPhone" placeholder="+7 ___ ___-__-__" inputmode="tel" autocomplete="tel">
+    <label>Услуга</label>
+    <select id="fService">
+      <option>Консультация + снимок</option>
+      <option>Профессиональная гигиена</option>
+      <option>Лечение кариеса</option>
+      <option>Эндодонтия</option>
+      <option>Отбеливание</option>
+      <option>Имплантация · консультация</option>
+    </select>
+    <label>День</label>
+    <div class="chips" id="days"></div>
+    <label>Время</label>
+    <div class="slots" id="slots"></div>
+    <label>Комментарий (необязательно)</label>
+    <textarea id="fNote" rows="2" placeholder="Что беспокоит?"></textarea>
+    <div class="err" id="err"></div>
+    <button class="btn" id="submit">Записаться</button>
+  </div>
+
+  <div class="card ok" id="okCard" style="display:none">
+    <div class="ic">✓</div>
+    <h2>Вы записаны!</h2>
+    <p id="okText"></p>
+    <p style="margin-top:12px;font-size:13.5px;color:var(--ink3)">Заявка уже видна администратору в расписании клиники.<br>Если планы изменятся — просто позвоните нам.</p>
+  </div>
+</div>
+
+<div class="foot">© 2026 Радикс Стоматология · онлайн-запись</div>
+
+<script src="project/assets/store.js"></script>
+<script>
+(function () {
+  "use strict";
+  var WD = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  var MO = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  var selDay = null, selTime = null;
+
+  var daysBox = document.getElementById("days");
+  var dayList = [];
+  for (var i = 1; i <= 7; i++) {
+    var d = new Date(); d.setDate(d.getDate() + i);
+    if (d.getDay() === 0) continue; // воскресенье клиника закрыта
+    dayList.push(d);
+  }
+  dayList.forEach(function (d, i) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button";
+    b.innerHTML = d.getDate() + " " + MO[d.getMonth()] + "<small>" + WD[d.getDay()] + "</small>";
+    b.addEventListener("click", function () {
+      selDay = d;
+      Array.prototype.forEach.call(daysBox.children, function (c) { c.classList.remove("on"); });
+      b.classList.add("on");
+    });
+    daysBox.appendChild(b);
+    if (i === 0) b.click();
+  });
+
+  var slotsBox = document.getElementById("slots");
+  ["9:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00", "18:00"].forEach(function (t, i) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = t;
+    b.addEventListener("click", function () {
+      selTime = t;
+      Array.prototype.forEach.call(slotsBox.children, function (c) { c.classList.remove("on"); });
+      b.classList.add("on");
+    });
+    slotsBox.appendChild(b);
+    if (i === 1) b.click();
+  });
+
+  document.getElementById("submit").addEventListener("click", function () {
+    var name = document.getElementById("fName").value.trim();
+    var phone = document.getElementById("fPhone").value.trim();
+    var err = document.getElementById("err");
+    if (name.length < 2 || phone.length < 6) {
+      err.textContent = "Заполните имя и телефон — без них мы не сможем подтвердить запись.";
+      err.style.display = "block";
+      return;
+    }
+    err.style.display = "none";
+    var when = selDay.getDate() + " " + MO[selDay.getMonth()] + " (" + WD[selDay.getDay()] + ") · " + selTime;
+    var booking = {
+      id: "b" + Date.now(), name: name, phone: phone,
+      service: document.getElementById("fService").value,
+      when: when, note: document.getElementById("fNote").value.trim(),
+      created: new Date().toISOString()
+    };
+    var list = RadixStore.get("bookings", []);
+    list.push(booking);
+    RadixStore.set("bookings", list);
+    document.getElementById("formCard").style.display = "none";
+    var ok = document.getElementById("okCard");
+    document.getElementById("okText").textContent = name + ", ждём вас " + when + " — " + booking.service.toLowerCase() + ".";
+    ok.style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+})();
+</script>
+</body>
+</html>
