@@ -106,5 +106,29 @@
     ], 1400).then(parseFindings);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage };
+  /* Парсер команд для ⌘K (общая модель — GPT-4o):
+     «открой план Анны», «покажи пациентов с кариесом» → действие интерфейса */
+  function command(q, patients) {
+    var plist = patients.map(function (p) {
+      var types = p.findings.map(function (f) { return f.type; }).join(",");
+      return p.id + ": " + p.name + " [" + types + "]";
+    }).join("; ");
+    var sys = "Ты — парсер команд интерфейса стоматологической платформы Радикс. " +
+      "Доступные действия:\n" +
+      "- open_view — открыть раздел (view: dashboard|patients|crm|calendar|assistant|analysis|plan|analytics|community|notifications|billing|settings)\n" +
+      "- open_patient | open_analysis | open_plan — открыть карточку/анализ/план пациента (patientId — число из списка)\n" +
+      "- answer — короткий текстовый ответ по данным (text)\n" +
+      "Пациенты (id: имя [типы находок: caries=кариес, cariesE=кариес эмали, tartar=камень, periap=эндо, resto=пломба]):\n" + plist +
+      "\nОтветь СТРОГО одним JSON-объектом: {\"action\":\"...\",\"view\":\"...\",\"patientId\":0,\"text\":\"...\"} — лишние поля опусти.";
+    return complete(models().chat, [
+      { role: "system", content: sys },
+      { role: "user", content: q }
+    ], 300).then(function (t) {
+      var m = t.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("Модель не вернула команду");
+      return JSON.parse(m[0]);
+    });
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command };
 })();

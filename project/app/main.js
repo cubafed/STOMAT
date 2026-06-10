@@ -16,8 +16,48 @@ function useDarkTheme() {
 function CommandK({ open, onClose, ctx }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiAns, setAiAns] = useState(null);
   const inputRef = useRef(null);
-  useEffect(() => { if (open) { setQ(""); setSel(0); setTimeout(() => inputRef.current && inputRef.current.focus(), 50); } }, [open]);
+  useEffect(() => { if (open) { setQ(""); setSel(0); setAiAns(null); setAiBusy(false); setTimeout(() => inputRef.current && inputRef.current.focus(), 50); } }, [open]);
+
+  // локальный разбор команды без ключа API (демо-режим)
+  function localCommand(query) {
+    const s = query.toLowerCase();
+    const pat = PATIENTS.find(p => s.includes(p.name.split(" ")[0].toLowerCase()) || s.includes(p.name.split(" ")[1].toLowerCase()));
+    if (s.includes("кариес")) {
+      const list = PATIENTS.filter(p => p.findings.some(f => f.type === "caries" || f.type === "cariesE"));
+      return { action: "answer", text: "Пациенты с кариесом (" + list.length + "): " + list.map(p => p.name).join(", ") + "." };
+    }
+    if (pat && (s.includes("план"))) return { action: "open_plan", patientId: pat.id };
+    if (pat && (s.includes("анализ") || s.includes("снимок"))) return { action: "open_analysis", patientId: pat.id };
+    if (pat) return { action: "open_patient", patientId: pat.id };
+    if (s.includes("воронк") || s.includes("crm") || s.includes("сделк")) return { action: "open_view", view: "crm" };
+    if (s.includes("расписан") || s.includes("календар")) return { action: "open_view", view: "calendar" };
+    if (s.includes("анализ") || s.includes("снимок")) return { action: "open_view", view: "analysis" };
+    if (s.includes("биллинг") || s.includes("оплат")) return { action: "open_view", view: "billing" };
+    if (s.includes("настройк")) return { action: "open_view", view: "settings" };
+    return { action: "open_view", view: "assistant" };
+  }
+  function execCmd(cmd) {
+    if (cmd.action === "answer" && cmd.text) { setAiAns(cmd.text); return; }
+    onClose();
+    setTimeout(() => {
+      if (cmd.action === "open_patient") ctx.openPatient(cmd.patientId);
+      else if (cmd.action === "open_analysis") ctx.openAnalysis(cmd.patientId);
+      else if (cmd.action === "open_plan") ctx.openPlan(cmd.patientId);
+      else if (cmd.action === "open_view" && cmd.view) ctx.setView(cmd.view);
+      else ctx.setView("assistant");
+    }, 60);
+  }
+  function runAI() {
+    if (!q.trim() || aiBusy) return;
+    setAiBusy(true); setAiAns(null);
+    const live = window.RadixAI && RadixAI.hasKey();
+    const run = live ? RadixAI.command(q, PATIENTS) : new Promise(res => setTimeout(() => res(localCommand(q)), 600));
+    run.then(cmd => { setAiBusy(false); execCmd(cmd); })
+      .catch(err => { setAiBusy(false); setAiAns("Не получилось: " + err.message); });
+  }
 
   const nav = [
     { t: "Дашборд", s: "Обзор клиники", ic: "home", act: () => ctx.setView("dashboard") },
@@ -44,9 +84,17 @@ function CommandK({ open, onClose, ctx }) {
   if (pats.length && q) groups.push(["Пациенты", pats]);
   if (navF.length) groups.push(["Разделы", navF]);
   if (aiF.length) groups.push(["AI-команды", aiF]);
+  if (q.trim().length > 2) groups.push(["Спросить AI", [{
+    t: aiBusy ? "Думаю…" : "AI: «" + q + "»",
+    s: (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().chat : "демо") + " · выполнит команду или ответит",
+    ic: "bolt", act: runAI, keep: true
+  }]]);
   const flat = groups.flatMap(g => g[1]);
 
-  function run(item) { onClose(); setTimeout(() => item.act && item.act(), 60); }
+  function run(item) {
+    if (item.keep) { item.act && item.act(); return; }
+    onClose(); setTimeout(() => item.act && item.act(), 60);
+  }
   function onKey(e) {
     if (e.key === "ArrowDown") { e.preventDefault(); setSel(s => Math.min(flat.length - 1, s + 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setSel(s => Math.max(0, s - 1)); }
@@ -60,6 +108,10 @@ function CommandK({ open, onClose, ctx }) {
         React.createElement(Icon, { name: "search", size: 20, style: { color: "var(--ink-3)" } }),
         React.createElement("input", { ref: inputRef, placeholder: "Поиск пациентов, разделов, AI-команд…", value: q, onChange: e => { setQ(e.target.value); setSel(0); }, onKeyDown: onKey }),
         React.createElement("span", { className: "ci-k", style: { fontSize: 11 } }, "ESC")),
+      aiAns ? React.createElement("div", { style: { margin: "10px 14px 0", padding: "13px 16px", borderRadius: 12, background: "var(--primary-tint)", color: "var(--primary-700)", fontSize: 14, lineHeight: 1.55, display: "flex", gap: 10, alignItems: "flex-start" } },
+        React.createElement(Icon, { name: "bolt", size: 16, style: { flexShrink: 0, marginTop: 2 } }),
+        React.createElement("span", { style: { flex: 1 } }, aiAns),
+        React.createElement("button", { onClick: () => setAiAns(null), style: { color: "inherit", opacity: .6 } }, "✕")) : null,
       React.createElement("div", { className: "cmdk-list" }, flat.length ? groups.map((g, gi) =>
         React.createElement("div", { key: gi },
           React.createElement("div", { className: "cmdk-sec" }, g[0]),
