@@ -158,5 +158,13 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage };
+  /* Динамика между двумя снимками (модель анализа — GPT-5.5) */
+  function dynamics(patient, beforeFinds, afterFinds) {
+    return complete(models().analysis, [
+      { role: "system", content: SYS },
+      { role: "user", content: "Сравни находки на двух снимках пациента " + patient.name + " (хронологический порядок).\n\nСНИМОК 1 (ранний):\n" + findingsBrief({ findings: beforeFinds }) + "\n\nСНИМОК 2 (поздний):\n" + findingsBrief({ findings: afterFinds }) + "\n\nОпиши:\n1. ДИНАМИКА — что улучшилось, что ухудшилось, что без изменений.\n2. НОВЫЕ НАХОДКИ и исчезнувшие.\n3. ВЫВОД — рекомендация врачу одним-двумя предложениями.\nБез преамбулы." }
+    ], 600);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics };
 })();

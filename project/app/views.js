@@ -327,6 +327,16 @@ function Analysis({ ctx }) {
     setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + findings.length + " находки"); }, 2100);
   }
   function resetView() { setZoom(1); setContrast(1); setInvert(false); setPan({ x: 50, y: 50 }); }
+  function aiDynamics() {
+    const done = queue.filter(it => it.status === "done");
+    if (done.length < 2) return;
+    setAiRep({ loading: true, kind: "dyn" });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const demo = "ДИНАМИКА\nКоличество находок: " + done[0].finds.length + " → " + done[1].finds.length + ". " + (done[1].finds.length <= done[0].finds.length ? "Тенденция положительная." : "Появились новые зоны внимания.") + "\n\nНОВЫЕ НАХОДКИ\nСм. различия в списках — типы: " + done[1].finds.map(f => f.type).join(", ") + ".\n\nВЫВОД\nСопоставьте снимки в просмотрщике и подтвердите изменения клинически.";
+    const run = live ? RadixAI.dynamics(patient, done[0].finds, done[1].finds) : new Promise(res => setTimeout(() => res(demo), 900));
+    run.then(text => setAiRep({ kind: "dyn", text, mode: live ? RadixAI.models().analysis : "демо" }))
+      .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
+  }
 
   const accepted = findings.filter((f, i) => decided[i] === "acc").length;
   const rejected = findings.filter((f, i) => decided[i] === "rej").length;
@@ -379,7 +389,10 @@ function Analysis({ ctx }) {
         React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
           background: it.status === "done" ? "var(--good)" : it.status === "run" ? "var(--warn)" : it.status === "err" ? "var(--danger)" : "var(--ink-4)" } }),
         (it.name.length > 18 ? it.name.slice(0, 16) + "…" : it.name),
-        it.status === "done" ? React.createElement("b", null, it.finds.length) : it.status === "run" ? "…" : null))) : null,
+        it.status === "done" ? React.createElement("b", null, it.finds.length) : it.status === "run" ? "…" : null)),
+      queue.filter(it => it.status === "done").length >= 2
+        ? React.createElement("button", { className: "btn-app gho sm", onClick: aiDynamics, disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chart", size: 14 }), "Динамика (AI)")
+        : null) : null,
 
     // progress strip
     React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
@@ -448,7 +461,7 @@ function Analysis({ ctx }) {
     aiRep && !aiRep.loading ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 18 })),
-        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : aiRep.kind === "second" ? "Второе мнение AI" : "AI-заключение по снимку"),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : aiRep.kind === "second" ? "Второе мнение AI" : aiRep.kind === "dyn" ? "Динамика между снимками" : "AI-заключение по снимку"),
         React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: aiRep.mode === "демо" ? "var(--warn)" : "var(--good)", background: aiRep.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "3px 10px", borderRadius: 999 } }, aiRep.mode === "демо" ? "Демо · подключите ключ в Настройках" : aiRep.mode),
         React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
           React.createElement("button", { className: "btn-app gho", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(aiRep.text); ctx.toast("Заключение скопировано"); } }, React.createElement(Icon, { name: "doc", size: 15 }), "Копировать"),
