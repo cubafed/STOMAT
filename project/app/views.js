@@ -215,6 +215,7 @@ function Analysis({ ctx }) {
   const [minPc, setMinPc] = useState(70);
   const [aiRep, setAiRep] = useState(null); // { loading, kind, text, mode }
   const saved = RadixStore.get("img_" + ctx.patientId, null);
+  const [queue, setQueue] = useState([]); // очередь мульти-загрузки
   const [img, setImg] = useState(saved ? saved.url : null);           // dataURL загруженного снимка
   const [imgFinds, setImgFinds] = useState(saved ? saved.finds : null); // находки vision-анализа
   const fileRef = useRef(null);
@@ -245,30 +246,50 @@ function Analysis({ ctx }) {
     const n = 3 + Math.floor(Math.random() * 2);
     return tpl.slice(0, n).map((f, i) => ({ ...f, box: { x: 10 + (i * 22) % 70, y: 18 + (i * 17) % 55, w: 11 + (i % 3) * 2, h: 13 + (i % 2) * 3 } }));
   }
-  function onFile(e) {
-    const file = e.target.files && e.target.files[0];
-    e.target.value = ""; if (!file) return;
-    const rd = new FileReader();
-    rd.onload = () => {
-      const url = rd.result;
-      setImg(url); setImgFinds(null); setDecided({}); setAiRep(null); setCompare(false);
-      setScanning(true); setShowDet(false);
-      const live = window.RadixAI && RadixAI.hasKey();
-      const run = live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 2200));
-      run.then(fs => {
-        setImgFinds(fs); setScanning(false); setShowDet(true);
-        RadixStore.set("decided_" + patient.id, null);
-        RadixStore.set("img_" + patient.id, { url, finds: fs }); // может не влезть в квоту — тогда просто без сохранения
-        ctx.toast((live ? RadixAI.models().analysis : "Демо") + ": найдено находок — " + fs.length);
-      }).catch(err => {
-        setScanning(false); setImg(null);
-        ctx.toast("Vision-анализ не удался: " + err.message);
+  function analyzeOne(url) {
+    const live = window.RadixAI && RadixAI.hasKey();
+    return live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 1400));
+  }
+  function showResult(url, fs, persist) {
+    setImg(url); setImgFinds(fs); setDecided({}); setAiRep(null); setShowDet(true);
+    if (persist) {
+      RadixStore.set("decided_" + patient.id, null);
+      RadixStore.set("img_" + patient.id, { url, finds: fs }); // может не влезть в квоту — тогда просто без сохранения
+    }
+  }
+  function openQueueItem(it) { if (it.status === "done") showResult(it.url, it.finds, true); }
+  function processQueue(items) {
+    let chain = Promise.resolve();
+    items.forEach((it, idx) => {
+      chain = chain.then(() => {
+        setQueue(q => q.map(x => x.id === it.id ? { ...x, status: "run" } : x));
+        return analyzeOne(it.url).then(fs => {
+          setQueue(q => q.map(x => x.id === it.id ? { ...x, status: "done", finds: fs } : x));
+          if (idx === 0) { showResult(it.url, fs, true); setScanning(false); }
+        }).catch(err => {
+          setQueue(q => q.map(x => x.id === it.id ? { ...x, status: "err", err: err.message } : x));
+          if (idx === 0) { setScanning(false); ctx.toast("Vision-анализ не удался: " + err.message); }
+        });
       });
-    };
-    rd.readAsDataURL(file);
+    });
+    chain.then(() => { if (items.length > 1) ctx.toast("Очередь анализа завершена: " + items.length + " снимков"); });
+  }
+  function onFile(e) {
+    const files = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = ""; if (!files.length) return;
+    Promise.all(files.map((f, i) => new Promise(res => {
+      const rd = new FileReader();
+      rd.onload = () => res({ id: Date.now() + "_" + i, name: f.name, url: rd.result, status: "wait", finds: null });
+      rd.readAsDataURL(f);
+    }))).then(items => {
+      setQueue(items.length > 1 ? items : []);
+      setImg(items[0].url); setImgFinds(null); setDecided({}); setAiRep(null); setCompare(false);
+      setScanning(true); setShowDet(false);
+      processQueue(items);
+    });
   }
   function resetImg() {
-    setImg(null); setImgFinds(null); setDecided({}); setAiRep(null); setShowDet(true);
+    setImg(null); setImgFinds(null); setDecided({}); setAiRep(null); setShowDet(true); setQueue([]);
     RadixStore.set("img_" + patient.id, null); RadixStore.set("decided_" + patient.id, null);
   }
   function localReport(kind) {
@@ -335,7 +356,7 @@ function Analysis({ ctx }) {
         React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", fontSize: 19 } }, patient.name),
         React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, img ? "Загруженный снимок · vision-анализ" : "Bitewing справа · 12.09.2025 · 2.4 МП · DICOM")),
       React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" } },
-        React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: onFile }),
+        React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", multiple: true, style: { display: "none" }, onChange: onFile }),
         React.createElement("button", { className: "btn-app gho", onClick: () => fileRef.current && fileRef.current.click() }, React.createElement(Icon, { name: "scan", size: 16 }), "Загрузить снимок"),
         img ? React.createElement("button", { className: "btn-app gho", onClick: resetImg }, React.createElement(Icon, { name: "x", size: 16 }), "К снимку из карточки") : null,
         React.createElement("button", { className: "btn-app gho", onClick: rescan }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Повторный анализ"),
@@ -344,6 +365,21 @@ function Analysis({ ctx }) {
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("second"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "shield", size: 16 }), "Второе мнение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
+
+    // очередь мульти-анализа
+    queue.length > 1 ? React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } },
+      React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "var(--ink-3)" } }, "Очередь анализа:"),
+      queue.map(it => React.createElement("button", { key: it.id, onClick: () => openQueueItem(it),
+        title: it.status === "err" ? it.err : it.name,
+        style: { display: "flex", alignItems: "center", gap: 7, padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, fontFamily: "inherit",
+          cursor: it.status === "done" ? "pointer" : "default",
+          border: "1.5px solid " + (img === it.url ? "var(--primary)" : "var(--line)"),
+          background: img === it.url ? "var(--primary-tint)" : "#fff",
+          color: it.status === "err" ? "var(--danger)" : "var(--ink-2)" } },
+        React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+          background: it.status === "done" ? "var(--good)" : it.status === "run" ? "var(--warn)" : it.status === "err" ? "var(--danger)" : "var(--ink-4)" } }),
+        (it.name.length > 18 ? it.name.slice(0, 16) + "…" : it.name),
+        it.status === "done" ? React.createElement("b", null, it.finds.length) : it.status === "run" ? "…" : null))) : null,
 
     // progress strip
     React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
