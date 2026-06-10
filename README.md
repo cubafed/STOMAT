@@ -1,25 +1,59 @@
-# CODING AGENTS: READ THIS FIRST
+# Радикс — AI-платформа для стоматологии
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Лендинг, личный кабинет врача и онлайн-запись. Статический сайт без сборки:
+React (production UMD) + чистый JS, деплоится на любой статический хостинг.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+**Демо:** https://cubafed.github.io/STOMAT/
 
-## What you should do — IMPORTANT
+## Страницы
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+| Файл | Что это |
+|---|---|
+| `index.html` | Редирект на лендинг |
+| `Лендинг МВП.html` | Кинематографичный лендинг (прелоадер, 3D-зуб, sticky-скролл анализа, интерактивная зубная формула, до/после, калькулятор, RU/EN) |
+| `Продукт МВП.html` | Личный кабинет врача (React) |
+| `Вход и регистрация.html` | Вход + 3-шаговый онбординг — роль и имя персонализируют кабинет |
+| `Запись.html` | Публичная онлайн-запись — заявки попадают в расписание врача |
 
-**Read `project/Лендинг МВП.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## AI-интеграция (OpenAI)
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+Два уровня моделей, настраиваются в **Настройках** кабинета:
 
-## About the design files
+- **GPT-5.5** — анализ: vision-разметка загруженных рентгенов, заключения,
+  объяснения пациенту, второе мнение, приоритизация плана, динамика снимков
+- **GPT-4o** — общий доступ: чат-ассистент с контекстом пациента,
+  AI-команды в ⌘K, сообщения пациенту
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+Ключ API хранится только в localStorage браузера и уходит напрямую в OpenAI.
+Без ключа всё работает в демо-режиме с заготовленными ответами.
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+## Возможности кабинета
 
-## Bundle contents
+- **Анализ снимков**: загрузка одного или очереди рентгенов, vision-находки
+  с боксами, фильтры/сортировка/порог уверенности, zoom и инверсия,
+  подтверждение находок, AI-заключение, второе мнение, динамика, экспорт
+- **CRM-воронка**: канбан с drag-and-drop; «Сформировать план» и
+  «Отправить пациенту» автоматически двигают сделку по стадиям
+- **Планы лечения**: сметы от редактируемого прайса клиники,
+  AI-приоритизация этапов, сообщение пациенту для WhatsApp/SMS
+- **Роли** врач/админ/ассистент — фильтруют доступные разделы
+- **Расписание** с онлайн-заявками с сайта, ⌘K-поиск с AI-командами,
+  тёмная тема, мобильный таб-бар, сообщество, биллинг, уведомления
+- **Персистентность**: решения, снимки, канбан, чаты и настройки
+  сохраняются в localStorage (`project/assets/store.js`)
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Стоматология` project files (HTML prototypes, assets, components)
+## Структура
+
+```
+project/
+├── app/         — личный кабинет (React, чистый JS без JSX)
+├── assets/      — ai.js (OpenAI), store.js, стили cine/product
+└── …            — прототипы из Claude Design (исходник дизайна)
+```
+
+## Деплой
+
+Любой статический хостинг. GitHub Pages уже настроен на ветку `main`.
+
+---
+Сделано для стоматологов · не является медицинским заключением.
