@@ -175,7 +175,15 @@ function Calendar({ ctx }) {
 
 /* ---------------- NOTIFICATIONS ---------------- */
 function Notifications({ ctx }) {
-  const [items, setItems] = useState(() => NOTIFS.map(n => ({ ...n })));
+  const [items, setItems] = useState(() => {
+    const fromBookings = RadixStore.get("bookings", []).slice().reverse().map(b => ({
+      id: "nb_" + b.id, icon: "calendar", c: "#FF5A36", unread: true, booking: true,
+      title: "Новая онлайн-запись",
+      text: b.name + " · " + b.service + " · " + b.when,
+      time: "с сайта"
+    }));
+    return fromBookings.concat(NOTIFS.map(n => ({ ...n })));
+  });
   const unread = items.filter(n => n.unread).length;
   return React.createElement("div", { className: "content-pad", style: { maxWidth: 760 } },
     React.createElement("div", { style: { display: "flex", alignItems: "flex-end", marginBottom: 18 } },
@@ -184,7 +192,7 @@ function Notifications({ ctx }) {
         React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, unread + " непрочитанных")),
       React.createElement("button", { className: "btn-app gho", style: { marginLeft: "auto" }, onClick: () => setItems(it => it.map(n => ({ ...n, unread: false }))) }, "Прочитать всё")),
     React.createElement("div", { className: "card", style: { overflow: "hidden" } }, items.map((n, i) =>
-      React.createElement("div", { key: n.id, className: "notif" + (n.unread ? " unread" : ""), onClick: () => { setItems(it => it.map(x => x.id === n.id ? { ...x, unread: false } : x)); if (n.pid) ctx.openPatient(n.pid); } },
+      React.createElement("div", { key: n.id, className: "notif" + (n.unread ? " unread" : ""), onClick: () => { setItems(it => it.map(x => x.id === n.id ? { ...x, unread: false } : x)); if (n.booking) ctx.setView("calendar"); else if (n.pid) ctx.openPatient(n.pid); } },
         React.createElement("span", { className: "n-ic", style: { background: n.c + "1a", color: n.c } }, React.createElement(Icon, { name: n.icon, size: 19 })),
         React.createElement("div", { style: { flex: 1, minWidth: 0 } },
           React.createElement("div", { className: "n-t" }, n.title),

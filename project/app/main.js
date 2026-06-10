@@ -203,6 +203,7 @@ function App() {
     toast: showToast, role, setRole
   };
 
+  const notifCount = 3 + RadixStore.get("bookings", []).length;
   const NAV = [
     { sec: "Клиника" },
     { k: "dashboard", ic: "home", l: "Дашборд" },
@@ -216,7 +217,7 @@ function App() {
     { k: "analytics", ic: "chart", l: "Аналитика" },
     { sec: "Команда" },
     { k: "community", ic: "users", l: "Сообщество" },
-    { k: "notifications", ic: "bell", l: "Уведомления", soft: 3 },
+    { k: "notifications", ic: "bell", l: "Уведомления", soft: notifCount },
     { k: "billing", ic: "cash", l: "Биллинг" },
     { k: "settings", ic: "settings", l: "Настройки" }
   ];
@@ -261,7 +262,7 @@ function App() {
     { k: "patients", ic: "users", l: "Пациенты" },
     { k: "analysis", ic: "scan", l: "Анализ" },
     { k: "community", ic: "chat", l: "Лента" },
-    { k: "notifications", ic: "bell", l: "Увед.", soft: 3 }
+    { k: "notifications", ic: "bell", l: "Увед.", soft: notifCount }
   ];
 
   return React.createElement("div", { className: "app" },
