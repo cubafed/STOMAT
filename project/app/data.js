@@ -224,7 +224,11 @@ const PATIENTS = [
   }
 ];
 
-function findingInfo(f) { const lib = FIND_LIB[f.type]; return { ...lib, ...f }; }
+function findingInfo(f) {
+  const lib = FIND_LIB[f.type];
+  const custom = (window.RadixStore ? RadixStore.get("prices", {}) : {})[f.type];
+  return { ...lib, ...(custom != null ? { price: custom } : {}), ...f };
+}
 function statusTag(flag) {
   if (flag === "caries") return { t: "Требует лечения", c: "#FF5A36", tint: "#FFE6DD" };
   if (flag === "periap") return { t: "Эндодонтия", c: "#7C5CFF", tint: "#EFEAFF" };

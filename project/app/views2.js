@@ -225,6 +225,40 @@ function AISettingsCard({ ctx }) {
         test && test.indexOf("err") === 0 ? React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: "var(--danger)" } }, test.slice(5)) : null)));
 }
 
+function PriceCard({ ctx }) {
+  const [prices, setPrices] = useState(() => {
+    const saved = RadixStore.get("prices", {});
+    const out = {};
+    Object.keys(FIND_LIB).forEach(k => { out[k] = saved[k] != null ? saved[k] : FIND_LIB[k].price; });
+    return out;
+  });
+  function save() {
+    const clean = {};
+    Object.keys(prices).forEach(k => { const v = Math.max(0, Math.round(+prices[k] || 0)); clean[k] = v; });
+    RadixStore.set("prices", clean); setPrices(clean);
+    ctx.toast("Прайс сохранён — сметы пересчитаны");
+  }
+  function reset() {
+    RadixStore.set("prices", null);
+    const out = {}; Object.keys(FIND_LIB).forEach(k => { out[k] = FIND_LIB[k].price; });
+    setPrices(out); ctx.toast("Прайс сброшен к значениям по умолчанию");
+  }
+  return React.createElement("div", { className: "card", style: { marginBottom: 18 } },
+    React.createElement(CardHead, { title: "Прайс клиники", icon: "cash" }),
+    React.createElement("div", { className: "card-pad" },
+      Object.keys(FIND_LIB).map((k, i, arr) =>
+        React.createElement("div", { key: k, style: { display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: i < arr.length - 1 ? "1px solid var(--line)" : "none" } },
+          React.createElement("span", { style: { width: 10, height: 10, borderRadius: "50%", background: FIND_LIB[k].c, flexShrink: 0 } }),
+          React.createElement("span", { style: { flex: 1, fontSize: 14.5, fontWeight: 600 } }, FIND_LIB[k].label),
+          React.createElement("input", { type: "number", min: 0, step: 100, value: prices[k],
+            onChange: e => setPrices(p => ({ ...p, [k]: e.target.value })),
+            style: { width: 110, padding: "8px 11px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", textAlign: "right", outline: "none", background: "#fff", color: "var(--ink)" } }),
+          React.createElement("span", { style: { color: "var(--ink-3)", fontSize: 13.5 } }, "₽"))),
+      React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 14 } },
+        React.createElement("button", { className: "btn-app pri", onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), "Сохранить прайс"),
+        React.createElement("button", { className: "btn-app gho", onClick: reset }, "Сбросить"))));
+}
+
 function Settings({ ctx }) {
   const integ = [["IDENT", true], ["Dental4Web", true], ["StomX", true], ["MedFlow", true], ["КлиникаПро", false], ["1С:Медицина", false]];
   return React.createElement("div", { className: "content-pad", style: { maxWidth: 820 } },
@@ -240,6 +274,7 @@ function Settings({ ctx }) {
               background: ctx.role === k ? "var(--primary-tint)" : "#fff" } },
             React.createElement("div", { style: { fontWeight: 700, fontSize: 14.5, color: ctx.role === k ? "var(--primary-700)" : "var(--ink)" } }, l),
             React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)", marginTop: 3 } }, s))))),
+    React.createElement(PriceCard, { ctx: ctx }),
     React.createElement(AISettingsCard, { ctx: ctx }),
     React.createElement("div", { className: "card", style: { marginBottom: 18 } },
       React.createElement(CardHead, { title: "Интеграции с CRM", icon: "layers" }),
