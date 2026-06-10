@@ -37,7 +37,10 @@ function PlanBuilder({ patient, ctx, embedded }) {
           React.createElement("div", { style: { fontWeight: 800, fontSize: 26, fontFamily: "var(--font-display)", color: "var(--primary-700)", whiteSpace: "nowrap" } }, fmt(total))),
         React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
           React.createElement("button", { className: "btn-app gho", onClick: aiAdvice, disabled: adv && adv.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
-          React.createElement("button", { className: "btn-app pri", onClick: () => ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0]) }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")))),
+          React.createElement("button", { className: "btn-app pri", onClick: () => {
+            const stage = crmSetStage(patient.id, "plan");
+            ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0] + (stage ? " · сделка → «" + stage.t + "»" : ""));
+          } }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")))),
     adv && !adv.loading ? React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid var(--line)", background: "#fff", overflow: "hidden" } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "12px 16px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 16 })),

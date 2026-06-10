@@ -354,4 +354,15 @@ const BILLING = {
   ]
 };
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING });
+/* Связка с CRM: подвинуть сделку пациента на стадию (персистентно) */
+function crmSetStage(pid, stageId) {
+  const card = CRM_CARDS.find(c => c.pid === pid);
+  if (!card) return null;
+  const st = RadixStore.get("crm_stages", {});
+  if (st[card.id] === stageId) return null; // уже там
+  st[card.id] = stageId;
+  RadixStore.set("crm_stages", st);
+  return CRM_STAGES.find(s => s.id === stageId);
+}
+
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage });
