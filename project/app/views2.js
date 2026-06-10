@@ -62,11 +62,13 @@ function buildAnswer(text, patient) {
 function Assistant({ ctx }) {
   const [pid, setPid] = useState(ctx.patientId || PATIENTS[0].id);
   const patient = PATIENTS.find(p => p.id === pid);
-  const [msgs, setMsgs] = useState([{ who: "ai", text: "Здравствуйте, доктор. Я проанализировал снимок пациента " + patient.name + " — нашёл " + patient.findings.length + " находки. Спросите меня о диагнозе, плане лечения или о том, как объяснить это пациенту." }]);
+  function greeting(p) { return [{ who: "ai", text: "Здравствуйте, доктор. Я проанализировал снимок пациента " + p.name + " — нашёл " + p.findings.length + " находки. Спросите меня о диагнозе, плане лечения или о том, как объяснить это пациенту." }]; }
+  const [msgs, setMsgs] = useState(() => RadixStore.get("chat_" + pid, null) || greeting(patient));
   const [val, setVal] = useState("");
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef(null);
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, typing]);
+  useEffect(() => { if (msgs.length > 1) RadixStore.set("chat_" + pid, msgs.slice(-30)); }, [msgs, pid]);
   function send(text) {
     const q = (text != null ? text : val).trim(); if (!q) return;
     setVal("");
@@ -99,7 +101,7 @@ function Assistant({ ctx }) {
             live ? "● Live · " + RadixAI.models().chat + " · контекст пациента" : "Демо-режим · подключите AI в Настройках")),
         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, background: "var(--bg-soft)", border: "1px solid var(--line)", borderRadius: 999, padding: "5px 6px 5px 12px" } },
           React.createElement(Avatar, { name: patient.name, color: patient.color, size: 26, fontSize: 11 }),
-          React.createElement("select", { value: pid, onChange: e => { const np = +e.target.value; setPid(np); const pp = PATIENTS.find(p => p.id === np); setMsgs([{ who: "ai", text: "Открыт пациент " + pp.name + ". Нашёл " + pp.findings.length + " находки на последнем снимке. Чем помочь?" }]); },
+          React.createElement("select", { value: pid, onChange: e => { const np = +e.target.value; setPid(np); const pp = PATIENTS.find(p => p.id === np); setMsgs(RadixStore.get("chat_" + np, null) || [{ who: "ai", text: "Открыт пациент " + pp.name + ". Нашёл " + pp.findings.length + " находки на последнем снимке. Чем помочь?" }]); },
             style: { border: "none", background: "none", font: "inherit", fontWeight: 600, fontSize: 13.5, color: "var(--ink)", outline: "none", cursor: "pointer" } },
             PATIENTS.map(p => React.createElement("option", { key: p.id, value: p.id }, p.name))))),
       React.createElement("div", { className: "chat-scroll", ref: scrollRef },

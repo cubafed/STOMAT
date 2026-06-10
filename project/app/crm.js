@@ -2,7 +2,10 @@
    Радикс Продукт — CRM (pipeline / kanban / follow-ups)
    ============================================================ */
 function CRM({ ctx }) {
-  const [cards, setCards] = useState(CRM_CARDS);
+  const [cards, setCards] = useState(() => {
+    const st = RadixStore.get("crm_stages", {});
+    return CRM_CARDS.map(c => st[c.id] ? { ...c, stage: st[c.id] } : c);
+  });
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
 
@@ -15,7 +18,14 @@ function CRM({ ctx }) {
   const convRate = 68;
   const fmt = n => n.toLocaleString("ru-RU") + " ₽";
 
-  function move(cardId, stage) { setCards(cs => cs.map(c => c.id === cardId ? { ...c, stage } : c)); }
+  function move(cardId, stage) {
+    setCards(cs => {
+      const ns = cs.map(c => c.id === cardId ? { ...c, stage } : c);
+      const st = {}; ns.forEach(c => { st[c.id] = c.stage; });
+      RadixStore.set("crm_stages", st);
+      return ns;
+    });
+  }
   function advance(card) {
     const idx = CRM_STAGES.findIndex(s => s.id === card.stage);
     if (idx < CRM_STAGES.length - 1) { move(card.id, CRM_STAGES[idx + 1].id); ctx.toast(card.name + " → " + CRM_STAGES[idx + 1].t); }

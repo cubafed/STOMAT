@@ -203,7 +203,7 @@ function Analysis({ ctx }) {
   const patient = PATIENTS.find(p => p.id === ctx.patientId);
   const [hot, setHot] = useState(-1);
   const [showDet, setShowDet] = useState(true);
-  const [decided, setDecided] = useState({});
+  const [decided, setDecided] = useState(() => RadixStore.get("decided_" + ctx.patientId, {}));
   const [compare, setCompare] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [contrast, setContrast] = useState(1);
@@ -214,15 +214,28 @@ function Analysis({ ctx }) {
   const [pan, setPan] = useState({ x: 50, y: 50 });
   const [minPc, setMinPc] = useState(70);
   const [aiRep, setAiRep] = useState(null); // { loading, kind, text, mode }
-  const [img, setImg] = useState(null);           // dataURL загруженного снимка
-  const [imgFinds, setImgFinds] = useState(null); // находки vision-анализа
+  const saved = RadixStore.get("img_" + ctx.patientId, null);
+  const [img, setImg] = useState(saved ? saved.url : null);           // dataURL загруженного снимка
+  const [imgFinds, setImgFinds] = useState(saved ? saved.finds : null); // находки vision-анализа
   const fileRef = useRef(null);
+  useEffect(() => {
+    setDecided(RadixStore.get("decided_" + ctx.patientId, {}));
+    const s = RadixStore.get("img_" + ctx.patientId, null);
+    setImg(s ? s.url : null); setImgFinds(s ? s.finds : null);
+    setAiRep(null); setHot(-1);
+  }, [ctx.patientId]);
   if (!patient) return null;
 
   const findings = imgFinds || patient.findings;
   const aip = imgFinds ? { name: patient.name, findings } : patient; // контекст для AI-вызовов
 
-  function decide(i, v) { setDecided(d => ({ ...d, [i]: d[i] === v ? null : v })); }
+  function decide(i, v) {
+    setDecided(d => {
+      const nd = { ...d, [i]: d[i] === v ? null : v };
+      RadixStore.set("decided_" + patient.id, nd);
+      return nd;
+    });
+  }
   function demoVisionFinds() {
     const tpl = [
       { type: "caries", tooth: 36, loc: "дистально", pc: 91 }, { type: "cariesE", tooth: 15, loc: "медиально", pc: 84 },
@@ -244,6 +257,8 @@ function Analysis({ ctx }) {
       const run = live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 2200));
       run.then(fs => {
         setImgFinds(fs); setScanning(false); setShowDet(true);
+        RadixStore.set("decided_" + patient.id, null);
+        RadixStore.set("img_" + patient.id, { url, finds: fs }); // может не влезть в квоту — тогда просто без сохранения
         ctx.toast((live ? RadixAI.models().analysis : "Демо") + ": найдено находок — " + fs.length);
       }).catch(err => {
         setScanning(false); setImg(null);
@@ -252,7 +267,10 @@ function Analysis({ ctx }) {
     };
     rd.readAsDataURL(file);
   }
-  function resetImg() { setImg(null); setImgFinds(null); setDecided({}); setAiRep(null); setShowDet(true); }
+  function resetImg() {
+    setImg(null); setImgFinds(null); setDecided({}); setAiRep(null); setShowDet(true);
+    RadixStore.set("img_" + patient.id, null); RadixStore.set("decided_" + patient.id, null);
+  }
   function localReport(kind) {
     const lines = findings.map(f => { const inf = findingInfo(f); return "• Зуб " + inf.tooth + " — " + inf.label + " (" + inf.loc + "), уверенность " + f.pc + "%"; });
     if (kind === "patient")
@@ -273,7 +291,12 @@ function Analysis({ ctx }) {
       setScanning(true); setShowDet(false); setDecided({});
       const live = window.RadixAI && RadixAI.hasKey();
       const run = live ? RadixAI.analyzeImage(img) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 2100));
-      run.then(fs => { setImgFinds(fs); setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + fs.length); })
+      run.then(fs => {
+        setImgFinds(fs); setScanning(false); setShowDet(true);
+        RadixStore.set("decided_" + patient.id, null);
+        RadixStore.set("img_" + patient.id, { url: img, finds: fs });
+        ctx.toast("Повторный анализ: найдено " + fs.length);
+      })
         .catch(err => { setScanning(false); setShowDet(true); ctx.toast("Ошибка: " + err.message); });
       return;
     }
