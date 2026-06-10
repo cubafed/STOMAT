@@ -153,6 +153,7 @@ const ROLE_INFO = {
 };
 
 function App() {
+  const USER = RadixStore.get("user", null) || { name: "Алексей Петров" };
   const [view, setView] = useState("dashboard");
   const [role, setRoleState] = useState(() => RadixStore.get("role", "doc"));
   function setRole(r) { setRoleState(r); RadixStore.set("role", r); }
@@ -286,9 +287,9 @@ function App() {
           React.createElement("div", { className: "su-s" }, "Безлимит анализов · 142 за месяц"),
           React.createElement("button", { className: "btn-app", style: { background: "#fff", color: "var(--ink)", width: "100%", position: "relative" }, onClick: () => ctx.setView("billing") }, "Управлять подпиской")),
         React.createElement("div", { className: "doctor" },
-          React.createElement("div", { className: "av" }, "АП"),
+          React.createElement("div", { className: "av" }, initials(USER.name)),
           React.createElement("div", { style: { flex: 1 } },
-            React.createElement("div", { className: "d-name" }, "Алексей Петров"),
+            React.createElement("div", { className: "d-name" }, USER.name),
             React.createElement("div", { className: "d-role" }, (ROLE_INFO[role] || ROLE_INFO.doc).sub)),
           React.createElement("button", { className: "icon-btn", style: { width: 34, height: 34 }, onClick: () => ctx.setView("settings") }, React.createElement(Icon, { name: "settings", size: 16 }))))),
     // Main

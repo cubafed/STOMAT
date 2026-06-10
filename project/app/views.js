@@ -4,6 +4,7 @@
 
 /* ---------------- DASHBOARD ---------------- */
 function Dashboard({ ctx }) {
+  const uname = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name.split(" ")[0];
   const stats = [
     { ic: "scan", c: "#3B5BFF", bg: "#ECF0FF", num: "142", lbl: "Снимков за неделю", tr: "+18%", up: true },
     { ic: "shield", c: "#f0533f", bg: "#FCE6E2", num: "37", lbl: "Найдено патологий", tr: "+6", up: true },
@@ -20,7 +21,7 @@ function Dashboard({ ctx }) {
   return React.createElement("div", { className: "content-pad" },
     React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 24, flexWrap: "wrap" } },
       React.createElement("div", null,
-        React.createElement("h1", { style: { fontSize: 28, fontFamily: "var(--font-display)", letterSpacing: "-.02em" } }, "Добрый день, Алексей"),
+        React.createElement("h1", { style: { fontSize: 28, fontFamily: "var(--font-display)", letterSpacing: "-.02em" } }, "Добрый день, " + uname),
         React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, "Понедельник, 23 июня · 4 приёма сегодня, 2 снимка в очереди анализа")),
       React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 10 } },
         React.createElement("button", { className: "btn-app gho", onClick: () => ctx.setView("assistant") }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Спросить ИИ"),
