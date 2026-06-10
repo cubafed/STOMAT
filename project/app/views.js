@@ -148,7 +148,7 @@ function PatientDetail({ patient, ctx, onEdit }) {
   const [tab, setTab] = useState("over");
   const [tooth, setTooth] = useState(null);
   const st = statusTag(patient.flag);
-  const tabs = [["over", "Обзор"], ["shots", "Снимки"], ["chart", "Зубная формула"], ["plan", "План лечения"], ["team", "Команда"]];
+  const tabs = [["over", "Обзор"], ["shots", "Снимки"], ["chart", "Зубная формула"], ["plan", "План лечения"], ["reports", "Заключения"], ["team", "Команда"]];
   return React.createElement("div", { className: "card" },
     React.createElement("div", { className: "pdetail-head" },
       React.createElement(Avatar, { name: patient.name, color: patient.color, size: 64, radius: "18px", fontSize: 24 }),
@@ -175,9 +175,36 @@ function PatientDetail({ patient, ctx, onEdit }) {
           React.createElement("div", { style: { color: "var(--ink-3)", fontSize: 14, marginTop: 4 } },
             tooth.info ? tooth.info.label + " · уверенность " + tooth.info.pc + "%" : "Патологий не обнаружено")) :
           React.createElement("div", { style: { marginTop: 16, fontSize: 14, color: "var(--ink-3)" } }, "Нажмите на зуб, чтобы увидеть историю и находки")) :
+      tab === "reports" ? React.createElement(PatientReports, { patient, ctx }) :
       tab === "team" ? React.createElement(PatientTeam, { patient, ctx }) :
       React.createElement(PlanBuilder, { patient, ctx, embedded: true }))
   );
+}
+
+function PatientReports({ patient, ctx }) {
+  const [open, setOpen] = useState(0);
+  const reports = RadixStore.get("reports_" + patient.id, []);
+  const KINDS = { doc: "AI-заключение", second: "Второе мнение", dyn: "Динамика", dict: "Из диктовки", patient: "Для пациента" };
+  if (!reports.length) return React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", padding: "34px 0", fontSize: 14.5 } },
+    "Заключений пока нет.", React.createElement("br"),
+    React.createElement("button", { className: "btn-app pri", style: { marginTop: 14 }, onClick: () => ctx.openAnalysis(patient.id) }, React.createElement(Icon, { name: "scan", size: 16 }), "Сделать анализ снимка"));
+  return React.createElement("div", null, reports.map((r, i) =>
+    React.createElement("div", { key: i, style: { border: "1px solid var(--line)", borderRadius: 13, marginBottom: 10, overflow: "hidden", background: "#fff" } },
+      React.createElement("button", { onClick: () => setOpen(open === i ? -1 : i),
+        style: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 15px", textAlign: "left", fontFamily: "inherit", cursor: "pointer", background: "none" } },
+        React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "doc", size: 16 })),
+        React.createElement("b", { style: { fontSize: 14 } }, KINDS[r.kind] || "Заключение"),
+        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: r.mode === "демо" ? "var(--warn)" : "var(--good)", background: r.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "2px 8px", borderRadius: 999 } }, r.mode),
+        React.createElement("span", { style: { marginLeft: "auto", fontSize: 12.5, color: "var(--ink-3)" } }, r.date),
+        React.createElement(Icon, { name: "arrow", size: 14, style: { transform: open === i ? "rotate(90deg)" : "rotate(0)", transition: "transform .2s", color: "var(--ink-3)" } })),
+      open === i ? React.createElement("div", { style: { padding: "0 15px 14px" } },
+        React.createElement("div", { style: { whiteSpace: "pre-wrap", fontSize: 13.5, lineHeight: 1.6, padding: "12px 14px", background: "var(--bg-soft)", borderRadius: 10 } }, r.text),
+        React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 10 } },
+          React.createElement("button", { className: "btn-app gho sm", onClick: () => {
+            const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
+            RadixPrint.open({ title: (KINDS[r.kind] || "Заключение") + " от " + r.date, patient: patient.name, doctor, bodyText: r.text });
+          } }, React.createElement(Icon, { name: "print", size: 14 }), "Печать"),
+          React.createElement("button", { className: "btn-app gho sm", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(r.text); ctx.toast("Скопировано"); } }, "Копировать"))) : null)));
 }
 
 function PatientTeam({ patient, ctx }) {
@@ -357,13 +384,19 @@ function Analysis({ ctx }) {
       return "На снимке мы нашли несколько участков, которые требуют внимания — в том числе начинающееся разрушение на " + findings.length + " зубах. Сейчас всё это лечится просто и быстро. Если отложить, лечение станет сложнее и дороже. Рекомендуем записаться на лечение в ближайшие недели.";
     return "ОПИСАНИЕ СНИМКА\nBitewing-снимок удовлетворительного качества, зубные ряды визуализируются полностью.\n\nНАХОДКИ (" + findings.length + ")\n" + lines.join("\n") + "\n\nРЕКОМЕНДАЦИИ\nЛечение по приоритету уверенности находок; начать с кариозных поражений.\n\nКОНТРОЛЬ\nКонтрольный снимок через 6 месяцев.";
   }
+  function keepReport(kind, text, mode) {
+    setAiRep({ kind, text, mode });
+    const list = RadixStore.get("reports_" + patient.id, []);
+    list.unshift({ date: new Date().toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }), kind, mode, text });
+    RadixStore.set("reports_" + patient.id, list.slice(0, 20));
+  }
   function aiReport(kind) {
     setAiRep({ loading: true, kind });
     const live = window.RadixAI && RadixAI.hasKey();
     const run = live
       ? (kind === "patient" ? RadixAI.explain(aip) : kind === "second" ? RadixAI.secondOpinion(aip) : RadixAI.report(aip))
       : new Promise(res => setTimeout(() => res(localReport(kind)), 900));
-    run.then(text => setAiRep({ kind, text, mode: live ? RadixAI.models().analysis : "демо" }))
+    run.then(text => keepReport(kind, text, live ? RadixAI.models().analysis : "демо"))
       .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
   }
   function rescan() {
@@ -410,7 +443,7 @@ function Analysis({ ctx }) {
     const live = window.RadixAI && RadixAI.hasKey();
     const demo = "ОПИСАНИЕ\nЗаключение составлено по диктовке врача.\n\nНАХОДКИ И НАБЛЮДЕНИЯ\n" + dict.text.trim() + "\n\nРЕКОМЕНДАЦИИ\nСогласно изложенному выше; контроль по плану лечения.";
     const run = live ? RadixAI.formatDictation(dict.text.trim(), patient) : new Promise(res => setTimeout(() => res(demo), 800));
-    run.then(text => { setAiRep({ kind: "dict", text, mode: live ? RadixAI.models().analysis : "демо" }); setDict(null); })
+    run.then(text => { keepReport("dict", text, live ? RadixAI.models().analysis : "демо"); setDict(null); })
       .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
   }
   function aiDynamics() {
@@ -420,7 +453,7 @@ function Analysis({ ctx }) {
     const live = window.RadixAI && RadixAI.hasKey();
     const demo = "ДИНАМИКА\nКоличество находок: " + done[0].finds.length + " → " + done[1].finds.length + ". " + (done[1].finds.length <= done[0].finds.length ? "Тенденция положительная." : "Появились новые зоны внимания.") + "\n\nНОВЫЕ НАХОДКИ\nСм. различия в списках — типы: " + done[1].finds.map(f => f.type).join(", ") + ".\n\nВЫВОД\nСопоставьте снимки в просмотрщике и подтвердите изменения клинически.";
     const run = live ? RadixAI.dynamics(patient, done[0].finds, done[1].finds) : new Promise(res => setTimeout(() => res(demo), 900));
-    run.then(text => setAiRep({ kind: "dyn", text, mode: live ? RadixAI.models().analysis : "демо" }))
+    run.then(text => keepReport("dyn", text, live ? RadixAI.models().analysis : "демо"))
       .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
   }
 
