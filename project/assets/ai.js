@@ -130,5 +130,16 @@
     });
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command };
+  /* Приоритизация плана лечения (модель анализа — GPT-5.5) */
+  function planAdvice(patient, items) {
+    var list = items.map(function (it, i) {
+      return (i + 1) + ". " + it.label + " · зуб " + it.tooth + " · " + it.price + " ₽ · приоритет " + it.sev + " · уверенность " + it.pc + "%";
+    }).join("\n");
+    return complete(models().analysis, [
+      { role: "system", content: SYS },
+      { role: "user", content: "План лечения пациента " + patient.name + " (этапы в произвольном порядке):\n" + list + "\n\nЗадача:\n1. ПОРЯДОК — оптимальная последовательность этапов (номерами) с кратким клиническим обоснованием каждого шага.\n2. АЛЬТЕРНАТИВА — как удешевить план без вреда (1-2 предложения).\n3. РИСКИ ОТКЛАДЫВАНИЯ — что будет, если отложить на полгода (1-2 предложения).\nКоротко, без преамбулы." }
+    ], 700);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice };
 })();

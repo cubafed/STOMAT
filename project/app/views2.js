@@ -6,6 +6,15 @@
 function PlanBuilder({ patient, ctx, embedded }) {
   const items = patient.findings.filter(f => findingInfo(f).price > 0).map(f => findingInfo(f));
   const [on, setOn] = useState(() => items.map(() => true));
+  const [adv, setAdv] = useState(null); // { loading, text, mode }
+  function aiAdvice() {
+    setAdv({ loading: true });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const demo = "ПОРЯДОК\n1. Эндодонтия и глубокий кариес — в первую очередь (риск осложнений).\n2. Остальные кариозные полости.\n3. Профгигиена — завершающим этапом, закрепляет результат.\n\nАЛЬТЕРНАТИВА\nЭтапы можно разнести на 2 визита — нагрузка на бюджет меньше, клинический результат тот же.\n\nРИСКИ ОТКЛАДЫВАНИЯ\nКариес дентина за полгода может дойти до пульпы — лечение станет в 2-3 раза дороже.";
+    const run = live ? RadixAI.planAdvice(patient, items) : new Promise(res => setTimeout(() => res(demo), 900));
+    run.then(text => setAdv({ text, mode: live ? RadixAI.models().analysis : "демо" }))
+      .catch(err => { setAdv(null); ctx.toast("AI недоступен: " + err.message); });
+  }
   const total = items.reduce((s, it, i) => s + (on[i] ? it.price : 0), 0);
   const fmt = n => n.toLocaleString("ru-RU") + " ₽";
   function toggle(i) { setOn(o => o.map((v, k) => k === i ? !v : v)); }
@@ -26,9 +35,16 @@ function PlanBuilder({ patient, ctx, embedded }) {
         React.createElement("div", null,
           React.createElement("div", { style: { fontSize: 13, color: "var(--primary-700)", opacity: .85 } }, "Итого по плану"),
           React.createElement("div", { style: { fontWeight: 800, fontSize: 26, fontFamily: "var(--font-display)", color: "var(--primary-700)", whiteSpace: "nowrap" } }, fmt(total))),
-        React.createElement("div", { style: { display: "flex", gap: 8 } },
-          React.createElement("button", { className: "btn-app gho" }, React.createElement(Icon, { name: "share", size: 16 }), "Альтернатива"),
+        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+          React.createElement("button", { className: "btn-app gho", onClick: aiAdvice, disabled: adv && adv.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
           React.createElement("button", { className: "btn-app pri", onClick: () => ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0]) }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")))),
+    adv && !adv.loading ? React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid var(--line)", background: "#fff", overflow: "hidden" } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "12px 16px", borderBottom: "1px solid var(--line)" } },
+        React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 16 })),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 14 } }, "Рекомендация AI по порядку лечения"),
+        React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: adv.mode === "демо" ? "var(--warn)" : "var(--good)", background: adv.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "2px 9px", borderRadius: 999 } }, adv.mode),
+        React.createElement("button", { style: { marginLeft: "auto", color: "var(--ink-3)" }, onClick: () => setAdv(null) }, "✕")),
+      React.createElement("div", { style: { padding: "14px 18px", whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 } }, adv.text)) : null,
     React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 14, color: "var(--ink-3)", fontSize: 13, alignItems: "center" } },
       React.createElement(Icon, { name: "shield", size: 15 }),
       "Расчёт ориентировочный. По ДМС возможна частичная компенсация — уточняется при согласовании."));
