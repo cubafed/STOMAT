@@ -141,5 +141,13 @@
     ], 700);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice };
+  /* Второе мнение — независимая рецензия находок (модель анализа — GPT-5.5) */
+  function secondOpinion(patient) {
+    return complete(models().analysis, [
+      { role: "system", content: "Ты — независимый врач-рентгенолог, дающий второе мнение по разметке другой AI-модели. Отвечай по-русски, кратко и критично. Окончательное решение за лечащим врачом." },
+      { role: "user", content: "Первичная модель разметила снимок пациента " + patient.name + " так:\n" + findingsBrief(patient) + "\n\nДай второе мнение:\n1. По каждой находке — СОГЛАСЕН или СОМНЕВАЮСЬ, с одним предложением почему.\n2. ЧТО ПЕРЕПРОВЕРИТЬ клинически (зондирование, термопроба, прицельный снимок).\n3. ЧТО МОГЛО БЫТЬ ПРОПУЩЕНО на таком снимке.\nБез преамбулы." }
+    ], 700);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion };
 })();

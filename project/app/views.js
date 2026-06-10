@@ -273,6 +273,8 @@ function Analysis({ ctx }) {
   }
   function localReport(kind) {
     const lines = findings.map(f => { const inf = findingInfo(f); return "• Зуб " + inf.tooth + " — " + inf.label + " (" + inf.loc + "), уверенность " + f.pc + "%"; });
+    if (kind === "second")
+      return "ПО НАХОДКАМ\n" + findings.map(f => { const inf = findingInfo(f); return "• " + inf.label + " зуб " + inf.tooth + " — " + (f.pc >= 85 ? "СОГЛАСЕН: высокая уверенность, картина типичная." : "СОМНЕВАЮСЬ: уверенность " + f.pc + "%, рекомендую перепроверить."); }).join("\n") + "\n\nЧТО ПЕРЕПРОВЕРИТЬ\nЗондирование сомнительных полостей, термопроба при подозрении на эндо, прицельный снимок при низкой уверенности.\n\nЧТО МОГЛО БЫТЬ ПРОПУЩЕНО\nНачальный апроксимальный кариес и поддёсенный камень на таком типе снимка различимы плохо.";
     if (kind === "patient")
       return "На снимке мы нашли несколько участков, которые требуют внимания — в том числе начинающееся разрушение на " + findings.length + " зубах. Сейчас всё это лечится просто и быстро. Если отложить, лечение станет сложнее и дороже. Рекомендуем записаться на лечение в ближайшие недели.";
     return "ОПИСАНИЕ СНИМКА\nBitewing-снимок удовлетворительного качества, зубные ряды визуализируются полностью.\n\nНАХОДКИ (" + findings.length + ")\n" + lines.join("\n") + "\n\nРЕКОМЕНДАЦИИ\nЛечение по приоритету уверенности находок; начать с кариозных поражений.\n\nКОНТРОЛЬ\nКонтрольный снимок через 6 месяцев.";
@@ -281,7 +283,7 @@ function Analysis({ ctx }) {
     setAiRep({ loading: true, kind });
     const live = window.RadixAI && RadixAI.hasKey();
     const run = live
-      ? (kind === "patient" ? RadixAI.explain(aip) : RadixAI.report(aip))
+      ? (kind === "patient" ? RadixAI.explain(aip) : kind === "second" ? RadixAI.secondOpinion(aip) : RadixAI.report(aip))
       : new Promise(res => setTimeout(() => res(localReport(kind)), 900));
     run.then(text => setAiRep({ kind, text, mode: live ? RadixAI.models().analysis : "демо" }))
       .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
@@ -340,6 +342,7 @@ function Analysis({ ctx }) {
         img ? null : React.createElement("button", { className: "btn-app gho", onClick: () => setCompare(c => !c) }, React.createElement(Icon, { name: "history", size: 16 }), compare ? "Один снимок" : "До / после"),
         React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
+        React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("second"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "shield", size: 16 }), "Второе мнение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
 
     // progress strip
@@ -409,7 +412,7 @@ function Analysis({ ctx }) {
     aiRep && !aiRep.loading ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 18 })),
-        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : "AI-заключение по снимку"),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : aiRep.kind === "second" ? "Второе мнение AI" : "AI-заключение по снимку"),
         React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: aiRep.mode === "демо" ? "var(--warn)" : "var(--good)", background: aiRep.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "3px 10px", borderRadius: 999 } }, aiRep.mode === "демо" ? "Демо · подключите ключ в Настройках" : aiRep.mode),
         React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
           React.createElement("button", { className: "btn-app gho", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(aiRep.text); ctx.toast("Заключение скопировано"); } }, React.createElement(Icon, { name: "doc", size: 15 }), "Копировать"),
