@@ -80,7 +80,14 @@ function PlanBuilder({ patient, ctx, embedded }) {
       React.createElement("div", null,
         React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", fontSize: 18 } }, "План лечения · " + patient.name),
         React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, "Сформирован из подтверждённых находок ИИ")),
-      React.createElement("button", { className: "btn-app gho", style: { marginLeft: "auto" }, onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт PDF")),
+      React.createElement("button", { className: "btn-app gho", style: { marginLeft: "auto" }, onClick: () => {
+        const sel = items.filter((it, i) => on[i]);
+        const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
+        if (RadixPrint.open({ title: "План лечения", patient: patient.name, doctor,
+          rows: sel.map(it => ({ label: it.label + " · зуб " + it.tooth, sub: "Приоритет: " + it.sev + " · уверенность ИИ " + it.pc + "%", price: it.price })),
+          total: sel.reduce((s, it) => s + it.price, 0) })) ctx.toast("Бланк открыт — печать или сохранение в PDF");
+        else ctx.toast("Браузер заблокировал окно печати — разрешите всплывающие окна");
+      } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт PDF")),
     body);
 }
 

@@ -428,7 +428,12 @@ function Analysis({ ctx }) {
         React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("second"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "shield", size: 16 }), "Второе мнение"),
-        React.createElement("button", { className: "btn-app gho", onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
+        React.createElement("button", { className: "btn-app gho", onClick: () => {
+          const text = aiRep && aiRep.text ? aiRep.text : localReport("doc");
+          const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
+          if (RadixPrint.open({ title: "Заключение по рентгенологическому исследованию", patient: patient.name, doctor, bodyText: text })) ctx.toast("Бланк открыт — печать или сохранение в PDF");
+          else ctx.toast("Браузер заблокировал окно печати — разрешите всплывающие окна");
+        } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
 
     // очередь мульти-анализа
     queue.length > 1 ? React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } },
