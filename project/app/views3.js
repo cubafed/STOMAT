@@ -96,7 +96,21 @@ function Calendar({ ctx }) {
   function bookingAction(b, accept) {
     const rest = bookings.filter(x => x.id !== b.id);
     setBookings(rest); RadixStore.set("bookings", rest);
-    ctx.toast(accept ? b.name + " — запись подтверждена, добавим в расписание" : "Заявка " + b.name + " отклонена");
+    if (!accept) { ctx.toast("Заявка " + b.name + " отклонена"); return; }
+    // пациент: найти по телефону или создать
+    const norm = s => (s || "").replace(/\D/g, "");
+    let p = PATIENTS.find(x => norm(x.phone) && norm(x.phone) === norm(b.phone));
+    const created = !p;
+    if (!p) p = addPatient({ name: b.name, phone: b.phone, ins: "—" });
+    // приём в календарь: день недели и время из b.when («10 июн (вт) · 15:00»)
+    const wdMap = { "пн": 0, "вт": 1, "ср": 2, "чт": 3, "пт": 4, "сб": 5 };
+    const wd = (b.when.match(/\((\S+)\)/) || [])[1];
+    const hm = (b.when.match(/(\d{1,2}):(\d{2})/) || []);
+    const day = wdMap[wd] != null ? wdMap[wd] : 0;
+    const start = hm[1] ? +hm[1] + (+hm[2] || 0) / 60 : 10;
+    addCalEvent({ day, start, dur: 1, pid: p.id, name: p.name, work: b.service, color: "#FF5A36" });
+    updatePatient(p.id, { next: b.when });
+    ctx.toast((created ? "Пациент создан и записан: " : "Приём добавлен: ") + p.name + " · " + b.when);
   }
   const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
   const H = 56;

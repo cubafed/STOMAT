@@ -156,6 +156,8 @@ function App() {
   const USER = RadixStore.get("user", null) || { name: "Алексей Петров" };
   const [view, setView] = useState("dashboard");
   const [role, setRoleState] = useState(() => RadixStore.get("role", "doc"));
+  const [, forceTick] = useState(0);
+  useEffect(() => { window.__rerender = () => forceTick(x => x + 1); return () => { window.__rerender = null; }; }, []);
   function setRole(r) { setRoleState(r); RadixStore.set("role", r); }
   const hidden = (ROLE_INFO[role] || ROLE_INFO.doc).hide;
   useEffect(() => { if (hidden.indexOf(view) > -1) setView("dashboard"); }, [role]);

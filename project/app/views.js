@@ -66,13 +66,58 @@ function Dashboard({ ctx }) {
 }
 
 /* ---------------- PATIENTS (master-detail) ---------------- */
+function PatientForm({ initial, onSave, onClose }) {
+  const [f, setF] = useState(() => initial || { name: "", age: "", phone: "", ins: "ДМС" });
+  const inp = { width: "100%", padding: "11px 14px", border: "1px solid var(--line)", borderRadius: 12, fontSize: 14.5, fontFamily: "inherit", outline: "none", background: "#fff", color: "var(--ink)" };
+  const lbl = { display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink-2)", margin: "14px 0 6px" };
+  function save() {
+    if (!f.name.trim()) return;
+    onSave({ name: f.name.trim(), age: f.age ? +f.age : "—", phone: f.phone.trim(), ins: f.ins });
+  }
+  return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 300, background: "rgba(10,8,5,.45)", display: "grid", placeItems: "center", padding: 16 }, onClick: onClose },
+    React.createElement("div", { className: "card", style: { width: "min(440px, 100%)", padding: 24 }, onClick: e => e.stopPropagation() },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 4 } },
+        React.createElement("h3", { style: { fontFamily: "var(--font-display)", fontSize: 19, flex: 1 } }, initial ? "Редактировать пациента" : "Новый пациент"),
+        React.createElement("button", { className: "icon-btn", onClick: onClose }, React.createElement(Icon, { name: "x", size: 16 }))),
+      React.createElement("label", { style: lbl }, "Имя и фамилия"),
+      React.createElement("input", { style: inp, value: f.name, autoFocus: true, placeholder: "Иван Иванов", onChange: e => setF({ ...f, name: e.target.value }) }),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Возраст"),
+          React.createElement("input", { style: inp, type: "number", min: 1, max: 120, value: f.age === "—" ? "" : f.age, onChange: e => setF({ ...f, age: e.target.value }) })),
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Страховка"),
+          React.createElement("select", { style: inp, value: f.ins, onChange: e => setF({ ...f, ins: e.target.value }) },
+            ["ДМС", "ОМС", "—"].map(v => React.createElement("option", { key: v, value: v }, v))))),
+      React.createElement("label", { style: lbl }, "Телефон"),
+      React.createElement("input", { style: inp, value: f.phone, placeholder: "+7 ___ ___-__-__", onChange: e => setF({ ...f, phone: e.target.value }) }),
+      React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 20 } },
+        React.createElement("button", { className: "btn-app pri", style: { flex: 1 }, disabled: !f.name.trim(), onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), initial ? "Сохранить" : "Создать"),
+        React.createElement("button", { className: "btn-app gho", onClick: onClose }, "Отмена"))));
+}
+
 function Patients({ ctx }) {
   const [q, setQ] = useState("");
+  const [form, setForm] = useState(null); // null | "new" | patient
   const list = PATIENTS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
   const patient = PATIENTS.find(p => p.id === ctx.patientId) || null;
+  function saveForm(data) {
+    if (form === "new") {
+      const p = addPatient(data);
+      ctx.setPatientId(p.id);
+      ctx.toast("Пациент создан: " + p.name);
+    } else {
+      updatePatient(form.id, data);
+      ctx.toast("Карточка обновлена");
+    }
+    setForm(null);
+  }
   return React.createElement("div", { className: "content-pad" },
+    form ? React.createElement(PatientForm, { initial: form === "new" ? null : { name: form.name, age: form.age, phone: form.phone, ins: form.ins }, onSave: saveForm, onClose: () => setForm(null) }) : null,
     React.createElement("div", { className: "split" },
       React.createElement("div", null,
+        React.createElement("button", { className: "btn-app pri", style: { width: "100%", marginBottom: 12 }, onClick: () => setForm("new") },
+          React.createElement(Icon, { name: "plus", size: 16 }), "Новый пациент"),
         React.createElement("div", { className: "side-search", style: { margin: "0 0 12px" } },
           React.createElement(Icon, { name: "search", size: 16 }),
           React.createElement("input", { placeholder: "Поиск пациента…", value: q, onChange: e => setQ(e.target.value) })),
@@ -85,7 +130,7 @@ function Patients({ ctx }) {
               React.createElement("div", { className: "p-meta" }, p.age + " лет · " + p.ins)),
             React.createElement("span", { className: "p-flag" }, React.createElement("i", { style: { display: "block", width: 9, height: 9, borderRadius: "50%", background: st.c } }))); })),
         list.length === 0 ? React.createElement("div", { className: "empty" }, "Никого не найдено") : null),
-      patient ? React.createElement(PatientDetail, { patient, ctx }) :
+      patient ? React.createElement(PatientDetail, { patient, ctx, onEdit: () => setForm(patient) }) :
         React.createElement("div", { className: "card empty" },
           React.createElement("div", { className: "e-ic" }, React.createElement(Icon, { name: "users", size: 28 })),
           React.createElement("div", { style: { fontWeight: 600, color: "var(--ink-2)" } }, "Выберите пациента"),
@@ -93,7 +138,13 @@ function Patients({ ctx }) {
   );
 }
 
-function PatientDetail({ patient, ctx }) {
+function PatientDetail({ patient, ctx, onEdit }) {
+  function archive() {
+    if (!window.confirm("Перенести пациента " + patient.name + " в архив?")) return;
+    archivePatient(patient.id);
+    if (PATIENTS.length) ctx.setPatientId(PATIENTS[0].id);
+    ctx.toast("Пациент в архиве: " + patient.name);
+  }
   const [tab, setTab] = useState("over");
   const [tooth, setTooth] = useState(null);
   const st = statusTag(patient.flag);
@@ -107,7 +158,9 @@ function PatientDetail({ patient, ctx }) {
           React.createElement(Tag, { c: st.c, tint: st.tint }, st.t)),
         React.createElement("div", { style: { color: "var(--ink-3)", fontSize: 14, marginTop: 3 } },
           patient.age + " лет · пациент с " + patient.since + " · " + patient.ins + " · " + patient.phone)),
-      React.createElement("div", { style: { display: "flex", gap: 8 } },
+      React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+        onEdit ? React.createElement("button", { className: "btn-app gho", onClick: onEdit }, React.createElement(Icon, { name: "settings", size: 16 }), "Редактировать") : null,
+        onEdit ? React.createElement("button", { className: "btn-app gho", title: "В архив", onClick: archive }, React.createElement(Icon, { name: "x", size: 16 })) : null,
         React.createElement("button", { className: "btn-app gho", onClick: () => ctx.openAssistant(patient.id) }, React.createElement(Icon, { name: "chat", size: 16 }), "Спросить ИИ"),
         React.createElement("button", { className: "btn-app pri", onClick: () => ctx.openAnalysis(patient.id) }, React.createElement(Icon, { name: "scan", size: 16 }), "Анализ снимка"))),
     React.createElement("div", { className: "tabs" }, tabs.map(([k, l]) =>

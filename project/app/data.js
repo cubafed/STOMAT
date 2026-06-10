@@ -358,6 +358,57 @@ const BILLING = {
   ]
 };
 
+/* ---------- Пациенты: персистентный CRUD поверх демо-данных ---------- */
+// при загрузке: добавить своих пациентов, применить правки демо, убрать архивных
+(function () {
+  RadixStore.get("custom_patients", []).forEach(p => PATIENTS.push(p));
+  const edits = RadixStore.get("patient_edits", {});
+  PATIENTS.forEach(p => { if (edits[p.id]) Object.assign(p, edits[p.id]); });
+  const arch = RadixStore.get("archived_patients", []);
+  for (let i = PATIENTS.length - 1; i >= 0; i--) if (arch.indexOf(PATIENTS[i].id) > -1) PATIENTS.splice(i, 1);
+  RadixStore.get("custom_events", []).forEach(e => CAL_EVENTS.push(e));
+})();
+function persistCustomPatients() {
+  RadixStore.set("custom_patients", PATIENTS.filter(p => p.id >= 100));
+}
+function rerenderApp() { if (window.__rerender) window.__rerender(); }
+function addPatient(data) {
+  const id = PATIENTS.reduce((m, p) => Math.max(m, p.id), 99) + 1;
+  const p = {
+    id, name: data.name, age: data.age || "—", since: "" + new Date().getFullYear(),
+    ins: data.ins || "—", color: PALS[id % PALS.length], status: "active",
+    next: "—", phone: data.phone || "", flag: "ok",
+    findings: [], visits: [], arch: { count: 7, restoreAt: null, decayAt: [] }
+  };
+  PATIENTS.push(p); persistCustomPatients(); rerenderApp();
+  return p;
+}
+function updatePatient(id, patch) {
+  const p = PATIENTS.find(x => x.id === id); if (!p) return null;
+  Object.assign(p, patch);
+  if (id >= 100) persistCustomPatients();
+  else {
+    const edits = RadixStore.get("patient_edits", {});
+    edits[id] = Object.assign(edits[id] || {}, patch);
+    RadixStore.set("patient_edits", edits);
+  }
+  rerenderApp(); return p;
+}
+function archivePatient(id) {
+  const i = PATIENTS.findIndex(x => x.id === id); if (i < 0) return;
+  PATIENTS.splice(i, 1);
+  const arch = RadixStore.get("archived_patients", []);
+  if (arch.indexOf(id) < 0) { arch.push(id); RadixStore.set("archived_patients", arch); }
+  if (id >= 100) persistCustomPatients();
+  rerenderApp();
+}
+function addCalEvent(ev) {
+  CAL_EVENTS.push(ev);
+  const custom = RadixStore.get("custom_events", []);
+  custom.push(ev); RadixStore.set("custom_events", custom);
+  rerenderApp();
+}
+
 /* Связка с CRM: подвинуть сделку пациента на стадию (персистентно) */
 function crmSetStage(pid, stageId) {
   const card = CRM_CARDS.find(c => c.pid === pid);
@@ -369,4 +420,4 @@ function crmSetStage(pid, stageId) {
   return CRM_STAGES.find(s => s.id === stageId);
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, addPatient, updatePatient, archivePatient, addCalEvent });
