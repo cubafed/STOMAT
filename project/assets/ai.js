@@ -166,5 +166,13 @@
     ], 600);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics };
+  /* Оформление голосовой диктовки врача в заключение (модель анализа — GPT-5.5) */
+  function formatDictation(text, patient) {
+    return complete(models().analysis, [
+      { role: "system", content: SYS },
+      { role: "user", content: "Врач надиктовал голосом черновик заключения по пациенту " + patient.name + " (распознанная речь, могут быть огрехи распознавания):\n\n«" + text + "»\n\nОформи это в аккуратное структурированное заключение: исправь очевидные ошибки распознавания, расставь разделы (Описание / Находки / Рекомендации), сохрани все клинические детали врача, ничего не выдумывай сверх сказанного. Без преамбулы." }
+    ], 800);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation };
 })();

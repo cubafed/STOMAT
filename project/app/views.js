@@ -270,6 +270,9 @@ function Analysis({ ctx }) {
   const [aiRep, setAiRep] = useState(null); // { loading, kind, text, mode }
   const saved = RadixStore.get("img_" + ctx.patientId, null);
   const [queue, setQueue] = useState([]); // очередь мульти-загрузки
+  const [dict, setDict] = useState(null); // { on, text } — голосовая диктовка
+  const recRef = useRef(null);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const [img, setImg] = useState(saved ? saved.url : null);           // dataURL загруженного снимка
   const [imgFinds, setImgFinds] = useState(saved ? saved.finds : null); // находки vision-анализа
   const fileRef = useRef(null);
@@ -381,6 +384,35 @@ function Analysis({ ctx }) {
     setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + findings.length + " находки"); }, 2100);
   }
   function resetView() { setZoom(1); setContrast(1); setInvert(false); setPan({ x: 50, y: 50 }); }
+  function toggleDict() {
+    if (recRef.current) { recRef.current.stop(); return; } // остановка — обработается в onend
+    const rec = new SR();
+    rec.lang = "ru-RU"; rec.continuous = true; rec.interimResults = true;
+    let finalText = (dict && dict.text) ? dict.text + " " : "";
+    rec.onresult = e => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript + " ";
+        else interim += e.results[i][0].transcript;
+      }
+      setDict({ on: true, text: (finalText + interim).trim() });
+    };
+    rec.onend = () => { recRef.current = null; setDict(d => d ? { ...d, on: false } : null); };
+    rec.onerror = ev => { recRef.current = null; setDict(d => d ? { ...d, on: false } : null); ctx.toast("Микрофон: " + (ev.error === "not-allowed" ? "нет доступа — разрешите в браузере" : ev.error)); };
+    recRef.current = rec;
+    setDict(d => ({ on: true, text: d ? d.text : "" }));
+    rec.start();
+  }
+  function formatDict() {
+    if (!dict || !dict.text.trim()) return;
+    if (recRef.current) recRef.current.stop();
+    setAiRep({ loading: true, kind: "dict" });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const demo = "ОПИСАНИЕ\nЗаключение составлено по диктовке врача.\n\nНАХОДКИ И НАБЛЮДЕНИЯ\n" + dict.text.trim() + "\n\nРЕКОМЕНДАЦИИ\nСогласно изложенному выше; контроль по плану лечения.";
+    const run = live ? RadixAI.formatDictation(dict.text.trim(), patient) : new Promise(res => setTimeout(() => res(demo), 800));
+    run.then(text => { setAiRep({ kind: "dict", text, mode: live ? RadixAI.models().analysis : "демо" }); setDict(null); })
+      .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
+  }
   function aiDynamics() {
     const done = queue.filter(it => it.status === "done");
     if (done.length < 2) return;
@@ -428,6 +460,9 @@ function Analysis({ ctx }) {
         React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("second"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "shield", size: 16 }), "Второе мнение"),
+        SR ? React.createElement("button", { className: "btn-app " + (dict && dict.on ? "pri" : "gho"), onClick: toggleDict, title: "Голосовая диктовка заключения" },
+          React.createElement("span", { style: dict && dict.on ? { width: 9, height: 9, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "pulse 1s infinite" } : { display: "none" } }),
+          dict && dict.on ? "Идёт запись…" : "🎤 Диктовка") : null,
         React.createElement("button", { className: "btn-app gho", onClick: () => {
           const text = aiRep && aiRep.text ? aiRep.text : localReport("doc");
           const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
@@ -516,11 +551,22 @@ function Analysis({ ctx }) {
         React.createElement("button", { className: "btn-app pri", style: { marginTop: 14, width: "100%" }, onClick: () => { crmSetStage(patient.id, "consult"); ctx.openPlan(patient.id); } },
           React.createElement(Icon, { name: "doc", size: 16 }), "Сформировать план (" + (accepted || pending) + ")"))),
 
+    // панель диктовки
+    dict && (dict.text || dict.on) ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "13px 18px", borderBottom: "1px solid var(--line)" } },
+        React.createElement("span", { style: { width: 10, height: 10, borderRadius: "50%", background: dict.on ? "var(--danger)" : "var(--ink-4)", flexShrink: 0 } }),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 14 } }, dict.on ? "Запись идёт — говорите" : "Диктовка остановлена"),
+        React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
+          React.createElement("button", { className: "btn-app pri sm", disabled: !dict.text.trim() || (aiRep && aiRep.loading), onClick: formatDict }, React.createElement(Icon, { name: "bolt", size: 14 }), aiRep && aiRep.loading ? "Оформляю…" : "Оформить (AI)"),
+          React.createElement("button", { className: "btn-app gho sm", onClick: () => { if (recRef.current) recRef.current.stop(); setDict(null); } }, "Сбросить"))),
+      React.createElement("div", { style: { padding: "14px 18px", fontSize: 14.5, lineHeight: 1.6, minHeight: 50, color: dict.text ? "var(--ink)" : "var(--ink-4)" } },
+        dict.text || "Скажите, что видите на снимке — текст появится здесь…")) : null,
+
     // AI report panel
     aiRep && !aiRep.loading ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 18 })),
-        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : aiRep.kind === "second" ? "Второе мнение AI" : aiRep.kind === "dyn" ? "Динамика между снимками" : "AI-заключение по снимку"),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : aiRep.kind === "second" ? "Второе мнение AI" : aiRep.kind === "dyn" ? "Динамика между снимками" : aiRep.kind === "dict" ? "Заключение из диктовки" : "AI-заключение по снимку"),
         React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: aiRep.mode === "демо" ? "var(--warn)" : "var(--good)", background: aiRep.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "3px 10px", borderRadius: 999 } }, aiRep.mode === "демо" ? "Демо · подключите ключ в Настройках" : aiRep.mode),
         React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
           React.createElement("button", { className: "btn-app gho", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(aiRep.text); ctx.toast("Заключение скопировано"); } }, React.createElement(Icon, { name: "doc", size: 15 }), "Копировать"),
