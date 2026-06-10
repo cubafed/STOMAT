@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Радикс — Вход и регистрация</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F1EA; --paper-2:#ECE7DB; --ink:#14110C; --ink-2:#4B463C; --ink-3:#837C6E; --ink-4:#A8A192;
+  --line:#E2DCCD; --line-2:#D2CBB8; --coral:#FF5A36; --coral-600:#ED4422; --coral-soft:#FFE6DD;
+  --blue:#2F4BF0; --cyan:#11AEC8; --good:#18A06E; --warn:#E8941F; --violet:#7C5CFF;
+  --dark:#0B0B0E; --dark-2:#141319; --line-dark:#2A2732; --on-dark:#F4F1EA; --on-dark-2:#A8A095; --on-dark-3:#6B6458;
+  --r-sm:12px; --r-md:16px; --r-lg:22px; --r-pill:999px;
+  --display:"Unbounded",system-ui,sans-serif; --ui:"Golos Text",system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.61,.18,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--ui);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;overflow:hidden}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.02em;line-height:1.02}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select{font-family:inherit}
+::selection{background:var(--coral);color:#fff}
+
+.auth{display:grid;grid-template-columns:1fr 1.05fr;height:100vh;height:100dvh}
+
+/* ---------- LEFT (form) ---------- */
+.left{display:flex;flex-direction:column;padding:clamp(24px,4vw,56px);overflow-y:auto;min-height:0}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:auto}
+.brand-mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--coral),#ff8a5c);display:grid;place-items:center;box-shadow:0 10px 26px -10px var(--coral)}
+.brand-mark svg{width:23px;height:23px}
+.brand b{font-family:var(--display);font-size:20px}
+.brand small{display:block;font-size:10.5px;color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+
+.form-wrap{width:100%;max-width:420px;margin:0 auto;padding-block:36px}
+.tabs{display:inline-flex;background:var(--paper-2);border-radius:var(--r-pill);padding:4px;margin-bottom:28px}
+.tabs button{padding:10px 22px;border-radius:var(--r-pill);font-size:14.5px;font-weight:600;color:var(--ink-3);transition:all .25s var(--ease)}
+.tabs button.on{background:#fff;color:var(--coral);box-shadow:0 2px 8px rgba(30,20,8,.1)}
+.eyebrow{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);font-weight:600}
+.form-wrap h1{font-size:clamp(30px,4vw,42px);margin:14px 0 10px}
+.sub{color:var(--ink-3);font-size:15.5px;margin-bottom:26px}
+
+.social{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px}
+.social button{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px;border:1px solid var(--line-2);border-radius:var(--r-md);font-weight:600;font-size:14px;background:#fff;transition:all .2s var(--ease)}
+.social button:hover{border-color:var(--ink);transform:translateY(-1px)}
+.divider{display:flex;align-items:center;gap:14px;color:var(--ink-4);font-size:13px;margin:6px 0 22px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13.5px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
+.field .inp{display:flex;align-items:center;gap:10px;border:1px solid var(--line-2);border-radius:var(--r-md);padding:0 14px;background:#fff;transition:all .2s var(--ease)}
+.field .inp:focus-within{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral-soft)}
+.field .inp svg{color:var(--ink-4);flex:0 0 auto}
+.field input{flex:1;border:none;outline:none;padding:14px 0;font-size:15px;background:none;color:var(--ink)}
+.field .eye{color:var(--ink-4);padding:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg .opt{flex:1;min-width:90px;text-align:center;padding:12px 8px;border:1px solid var(--line-2);border-radius:var(--r-md);font-size:13.5px;font-weight:600;color:var(--ink-2);transition:all .2s var(--ease);background:#fff}
+.seg .opt.on{border-color:var(--coral);background:var(--coral-soft);color:var(--coral-600)}
+.seg .opt small{display:block;font-weight:500;font-size:11px;color:var(--ink-3);margin-top:2px}
+.seg .opt.on small{color:var(--coral-600)}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;border-radius:var(--r-md);font-weight:600;font-size:15.5px;transition:all .2s var(--ease)}
+.btn-coral{background:var(--coral);color:#fff}
+.btn-coral:hover{background:var(--coral-600);box-shadow:0 16px 34px -14px var(--coral);transform:translateY(-1px)}
+.btn-coral .arr{transition:transform .3s var(--ease)}.btn-coral:hover .arr{transform:translateX(4px)}
+.form-foot{margin-top:20px;font-size:14px;color:var(--ink-3);text-align:center}
+.form-foot a{color:var(--coral);font-weight:600}
+.legal{margin-top:18px;font-size:12.5px;color:var(--ink-4);text-align:center;line-height:1.5}
+.legal a{color:var(--ink-3);text-decoration:underline}
+.back{display:inline-flex;align-items:center;gap:7px;color:var(--ink-3);font-size:14px;font-weight:500;margin-top:auto}
+.back:hover{color:var(--coral)}
+.forgot{font-size:13px;color:var(--coral);font-weight:600;float:right}
+
+/* onboarding steps */
+.steps-bar{display:flex;gap:8px;margin-bottom:26px}
+.steps-bar i{height:4px;flex:1;border-radius:99px;background:var(--line);overflow:hidden;position:relative}
+.steps-bar i b{position:absolute;inset:0;background:var(--coral);border-radius:99px;width:0;transition:width .4s var(--ease);display:block}
+.steps-bar i.done b,.steps-bar i.cur b{width:100%}
+.hide{display:none!important}
+
+/* ---------- RIGHT (visual) ---------- */
+.right{position:relative;background:var(--dark);overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(30px,4vw,60px);color:var(--on-dark)}
+.right::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 400px at 75% 15%,rgba(255,90,54,.22),transparent 60%),radial-gradient(600px 420px at 10% 90%,rgba(124,92,255,.16),transparent 55%)}
+.right-bgword{position:absolute;right:-3%;top:30%;font-family:var(--display);font-weight:800;font-size:26vw;color:rgba(255,255,255,.025);letter-spacing:-.05em;pointer-events:none;line-height:.8}
+.r-top{position:relative;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--on-dark-2)}
+.r-dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(24,160,110,.2);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* mini radiograph viewer */
+.viz{position:relative;align-self:center;width:min(440px,80%);margin:auto 0}
+.viz-card{background:linear-gradient(160deg,#141319,#0b0b0e);border:1px solid var(--line-dark);border-radius:var(--r-lg);padding:16px;box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+.viz-top{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 12px;font-size:11.5px;color:var(--on-dark-2)}
+.viz-tag{background:rgba(255,255,255,.06);padding:4px 9px;border-radius:99px;font-weight:600}
+.film{position:relative;border-radius:var(--r-md);overflow:hidden;background:radial-gradient(120% 90% at 50% 16%,#2c3658,#161d33 45%,#0c1122);aspect-ratio:16/11}
+.film svg{position:absolute;inset:0;width:100%;height:100%}
+.scanline{position:absolute;left:0;right:0;height:90px;z-index:4;background:linear-gradient(to bottom,transparent,rgba(120,200,255,.4) 50%,transparent);animation:scan 3.4s var(--ease) infinite;mix-blend-mode:screen}
+.scanline::after{content:"";position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(150,210,255,.9);box-shadow:0 0 12px 2px rgba(90,170,255,.7)}
+@keyframes scan{0%{top:-90px}60%{top:100%}100%{top:100%}}
+.det{position:absolute;border-radius:6px;opacity:0;animation:detIn .5s var(--ease) forwards}
+@keyframes detIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.det .bx{position:absolute;inset:0;border:1.5px solid var(--dc);border-radius:6px;box-shadow:0 0 16px -2px var(--dc)}
+.det .lb{position:absolute;top:-9px;left:-2px;transform:translateY(-100%);background:var(--dc);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.viz-foot{display:flex;gap:7px;padding:12px 6px 2px;flex-wrap:wrap}
+.viz-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--on-dark);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:5px 10px;border-radius:99px}
+.viz-pill i{width:7px;height:7px;border-radius:50%}
+.float{position:absolute;background:var(--paper);color:var(--ink);border-radius:14px;box-shadow:0 30px 60px -22px rgba(0,0,0,.5);padding:12px 14px;display:flex;align-items:center;gap:11px;animation:floaty 6s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.float .fi{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
+.float .ft{font-size:13px;font-weight:700;line-height:1.2}.float .fs{font-size:11.5px;color:var(--ink-3)}
+.float.f1{right:-18px;top:8%}.float.f2{left:-22px;bottom:14%;animation-delay:-2.5s}
+.r-quote{position:relative;max-width:440px}
+.r-quote .q{font-family:var(--display);font-weight:600;font-size:clamp(18px,1.8vw,23px);line-height:1.3}
+.r-quote .qa{display:flex;align-items:center;gap:11px;margin-top:18px}
+.qa .av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7C5CFF,#a48cff);display:grid;place-items:center;font-weight:700;font-family:var(--display);font-size:14px}
+.qa .qn{font-weight:600;font-size:14px}.qa .qr{font-size:12.5px;color:var(--on-dark-2)}
+.r-logos{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px;opacity:.5;font-family:var(--display);font-weight:600;font-size:15px;color:var(--on-dark-2)}
+
+@media(max-width:920px){
+  .auth{grid-template-columns:1fr}
+  .right{display:none}
+  .left{padding-bottom:40px}
+}
+@media(max-width:480px){
+  .row2{grid-template-columns:1fr}
+  .social{grid-template-columns:1fr}
+  .form-wrap{padding-block:24px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="auth">
+  <!-- LEFT: form -->
+  <div class="left">
+    <a class="brand" href="Лендинг МВП.html">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2.2 0-3 1.4-5 1.4S4 3.6 4 6.5c0 4 1.4 6 2.2 9.2.5 2 .8 4.3 2.3 4.3 1.3 0 1.2-2.4 2-4 .4-.8.8-1.2 1.5-1.2s1.1.4 1.5 1.2c.8 1.6.7 4 2 4 1.5 0 1.8-2.3 2.3-4.3C18.6 12.5 20 10.5 20 6.5 20 3.6 19 4.4 17 4.4S14.2 3 12 3Z" fill="#fff"/><rect x="6.2" y="10.7" width="11.6" height="1.5" rx="0.75" fill="#FF5A36"/></svg></span>
+      <span><b>Радикс</b><small>Стоматология · AI</small></span>
+    </a>
+
+    <div class="form-wrap">
+      <div class="tabs">
+        <button id="tabLogin" class="on">Вход</button>
+        <button id="tabReg">Регистрация</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="viewLogin">
+        <span class="eyebrow">С возвращением</span>
+        <h1>Войдите в Радикс</h1>
+        <p class="sub">Рабочее место врача: снимки, пациенты и AI-анализ.</p>
+        <div class="social">
+          <button><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9Z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2.1v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.1a11 11 0 0 0 0 9.8l3.6-2.8Z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2.1 7.1l3.6 2.8C6.6 7.3 9.1 5.4 12 5.4Z"/></svg>Google</button>
+          <button><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg>Телефон</button>
+        </div>
+        <div class="divider">или по email</div>
+        <div class="field"><label>Email</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input type="email" placeholder="doctor@clinic.ru" value="a.petrov@avrora-clinic.ru"></div></div>
+        <div class="field"><label>Пароль <a class="forgot" id="forgotLink" href="#">Забыли пароль?</a></label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input type="password" id="loginPass" placeholder="••••••••" value="demo1234"><button class="eye" data-eye="loginPass"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+        <a class="btn btn-coral" href="Продукт МВП.html">Войти <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <p class="form-foot">Нет аккаунта? <a id="toReg" href="#">Зарегистрируйтесь бесплатно</a></p>
+      </div>
+
+      <!-- FORGOT -->
+      <div id="viewForgot" class="hide">
+        <span class="eyebrow">Восстановление</span>
+        <h1>Сбросить пароль</h1>
+        <p class="sub">Укажите email — пришлём ссылку для входа.</p>
+        <div class="field"><label>Email</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input type="email" placeholder="doctor@clinic.ru"></div></div>
+        <button class="btn btn-coral" id="sendReset">Отправить ссылку</button>
+        <p class="form-foot"><a id="backToLogin2" href="#">← Вернуться ко входу</a></p>
+      </div>
+
+      <!-- REGISTER (multi-step onboarding) -->
+      <div id="viewReg" class="hide">
+        <div class="steps-bar"><i id="sb0" class="cur"><b></b></i><i id="sb1"><b></b></i><i id="sb2"><b></b></i></div>
+
+        <!-- step 1: account -->
+        <div id="regStep0">
+          <span class="eyebrow">Шаг 1 из 3 · Аккаунт</span>
+          <h1>Создайте аккаунт</h1>
+          <p class="sub">14 дней полного доступа. Карта не нужна.</p>
+          <div class="social">
+            <button><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2-1.9 3.3-4.7 3.3-7.9Z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.5-2.7c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2.1v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.7 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.1a11 11 0 0 0 0 9.8l3.6-2.8Z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2.1 7.1l3.6 2.8C6.6 7.3 9.1 5.4 12 5.4Z"/></svg>Google</button>
+            <button><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg>Телефон</button>
+          </div>
+          <div class="divider">или по email</div>
+          <div class="field"><label>Имя и фамилия</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg><input type="text" placeholder="Алексей Петров"></div></div>
+          <div class="field"><label>Email</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input type="email" placeholder="doctor@clinic.ru"></div></div>
+          <div class="field"><label>Пароль</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input type="password" id="regPass" placeholder="Минимум 8 символов"><button class="eye" data-eye="regPass"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+          <button class="btn btn-coral" data-next="1">Продолжить <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <p class="form-foot">Уже есть аккаунт? <a id="toLogin" href="#">Войти</a></p>
+        </div>
+
+        <!-- step 2: role -->
+        <div id="regStep1" class="hide">
+          <span class="eyebrow">Шаг 2 из 3 · Роль</span>
+          <h1>Кто вы в клинике?</h1>
+          <p class="sub">Настроим интерфейс под вашу роль.</p>
+          <div class="seg" style="margin-bottom:18px" id="roleSeg">
+            <button class="opt on" data-role="doc">Врач<small>снимки и пациенты</small></button>
+            <button class="opt" data-role="admin">Админ<small>расписание и CRM</small></button>
+            <button class="opt" data-role="assist">Ассистент<small>помощь врачу</small></button>
+          </div>
+          <div class="field"><label>Специализация</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4c-1.6 0-2.2 1-3.6 1S6 4 4.8 5C4 6 4 7.6 4.6 10c.4 1.7 1 5 1.8 7.5.3 1 .7 2 1.4 2 1 0 1-1.8 1.3-3 .2-.9.5-1.5 1.2-1.5s1 .6 1.2 1.5c.3 1.2.3 3 1.3 3 .7 0 1.1-1 1.4-2C18 12.6 18.6 11.7 19 10c.6-2.4.6-4 .2-5-1.2-1-2.2 0-3.6 0S13.6 4 12 4Z"/></svg>
+            <select id="specSel" style="flex:1;border:none;outline:none;background:none;padding:14px 0;font-size:15px;color:var(--ink)"><option>Стоматолог-терапевт</option><option>Ортодонт</option><option>Хирург-имплантолог</option><option>Гигиенист</option><option>Ортопед</option><option>Детский стоматолог</option></select></div></div>
+          <div style="display:flex;gap:11px"><button class="btn" style="flex:0 0 auto;border:1px solid var(--line-2);width:auto;padding:15px 20px" data-back="0">Назад</button><button class="btn btn-coral" data-next="2">Продолжить <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+        </div>
+
+        <!-- step 3: clinic -->
+        <div id="regStep2" class="hide">
+          <span class="eyebrow">Шаг 3 из 3 · Клиника</span>
+          <h1>О вашей клинике</h1>
+          <p class="sub">Последний шаг — и вы внутри.</p>
+          <div class="field"><label>Название клиники</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg><input type="text" placeholder="Аврора"></div></div>
+          <div class="row2">
+            <div class="field"><label>Город</label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg><input type="text" placeholder="Москва"></div></div>
+            <div class="field"><label>Промокод <span style="color:var(--ink-4);font-weight:400">· необязательно</span></label><div class="inp"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12 12 4H4v8l8 8 8-8Z"/><circle cx="8" cy="8" r="1.4"/></svg><input type="text" placeholder="MVP2026"></div></div>
+          </div>
+          <div style="display:flex;gap:11px;margin-top:6px"><button class="btn" style="flex:0 0 auto;border:1px solid var(--line-2);width:auto;padding:15px 20px" data-back="1">Назад</button><a class="btn btn-coral" href="Продукт МВП.html">Создать аккаунт <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+          <p class="legal">Создавая аккаунт, вы соглашаетесь с <a href="#">условиями</a> и <a href="#">политикой конфиденциальности</a>. Радикс — ассистент врача и не является медицинским заключением.</p>
+        </div>
+      </div>
+
+      <a class="back" href="Лендинг МВП.html">← На сайт</a>
+    </div>
+  </div>
+
+  <!-- RIGHT: cinematic visual -->
+  <div class="right">
+    <div class="right-bgword">AI</div>
+    <div class="r-top"><span class="r-dot"></span>Радикс-Vision 3.1 · анализ в реальном времени</div>
+
+    <div class="viz">
+      <div class="viz-card">
+        <div class="viz-top"><span>Снимок · Пациент №2048</span><span class="viz-tag">Bitewing</span></div>
+        <div class="film">
+          <svg id="film" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid slice"></svg>
+          <div class="scanline"></div>
+          <div class="det" style="left:18%;top:28%;width:12%;height:16%;--dc:#FF5A36;animation-delay:.8s"><div class="bx"></div><div class="lb">Кариес 94%</div></div>
+          <div class="det" style="left:63%;top:55%;width:13%;height:16%;--dc:#FF5A36;animation-delay:1.1s"><div class="bx"></div><div class="lb">Кариес 88%</div></div>
+          <div class="det" style="left:41%;top:46%;width:10%;height:12%;--dc:#E8941F;animation-delay:1.4s"><div class="bx"></div><div class="lb">Камень 81%</div></div>
+          <div class="det" style="left:75%;top:28%;width:11%;height:13%;--dc:#11AEC8;animation-delay:1.7s"><div class="bx"></div><div class="lb">Пломба</div></div>
+        </div>
+        <div class="viz-foot">
+          <span class="viz-pill"><i style="background:#FF5A36"></i>Кариес · 2</span>
+          <span class="viz-pill"><i style="background:#E8941F"></i>Камень · 1</span>
+          <span class="viz-pill"><i style="background:#11AEC8"></i>Пломба · 1</span>
+        </div>
+      </div>
+      <div class="float f1"><span class="fi" style="background:#E1F4EC;color:#18A06E"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg></span><div><div class="ft">План готов</div><div class="fs">смета сформирована</div></div></div>
+      <div class="float f2"><span class="fi" style="background:#FFE6DD;color:#FF5A36"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></span><div><div class="ft">AI-ассистент</div><div class="fs">отвечает на вопросы</div></div></div>
+    </div>
+
+    <div class="r-quote">
+      <div class="q">«Радикс экономит мне 3 минуты на каждом пациенте и помогает объяснить лечение так, что люди соглашаются.»</div>
+      <div class="qa"><span class="av">ОЗ</span><div><div class="qn">Ольга Зайцева</div><div class="qr">Ортодонт · клиника ДентаЛюкс</div></div></div>
+      <div class="r-logos"><span>◈ ДентаЛюкс</span><span>◉ Аврора</span><span>✚ МедСтом</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+  // radiograph
+  var TOOTH="M12 4c-1.6 0-2.2 1-3.6 1S6 4 4.8 5C4 6 4 7.6 4.6 10c.4 1.7.7 3.4 1.1 5.2.3 1.4.6 3.3 1.8 3.3 1 0 1-1.8 1.3-3 .2-.9.5-1.5 1.2-1.5s1 .6 1.2 1.5c.3 1.2.3 3 1.3 3 1.2 0 1.5-1.9 1.8-3.3.4-1.8.7-3.5 1.1-5.2C19 7.6 19 6 18.2 5 17 4 16 5 14.6 5S13.6 4 12 4Z";
+  function tp(cx,hw,by,dir,rl,ch,two){var x0=cx-hw,x1=cx+hw,r=hw*.55,ct=by-dir*ch,b=by;var cr="M"+x0+","+b+"L"+x0+","+(ct+dir*r)+"Q"+x0+","+ct+" "+(x0+r)+","+ct+"L"+(x1-r)+","+ct+"Q"+x1+","+ct+" "+x1+","+(ct+dir*r)+"L"+x1+","+b+"Z";var tip=b+dir*rl;var ro=two?"M"+(x0+hw*.15)+","+b+" L"+(cx-hw*.18)+","+tip+" L"+(cx-hw*.05)+","+b+"Z M"+(x1-hw*.15)+","+b+" L"+(cx+hw*.18)+","+tip+" L"+(cx+hw*.05)+","+b+"Z":"M"+(x0+hw*.2)+","+b+" L"+cx+","+tip+" L"+(x1-hw*.2)+","+b+"Z";return{cr:cr,ro:ro}}
+  function draw(svg){var H=460,W=680,bite=H*.5,n=7,gap=W/n,hb=gap*.4,ns="http://www.w3.org/2000/svg";svg.innerHTML="";
+    var defs=document.createElementNS(ns,"defs");defs.innerHTML='<linearGradient id="e1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe5ef"/><stop offset="1" stop-color="#9aa3b6"/></linearGradient><linearGradient id="e2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#dfe5ef"/><stop offset="1" stop-color="#9aa3b6"/></linearGradient><linearGradient id="bn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3350"/><stop offset="1" stop-color="#141a30"/></linearGradient>';svg.appendChild(defs);
+    var bg=document.createElementNS(ns,"rect");bg.setAttribute("width",W);bg.setAttribute("height",H);bg.setAttribute("fill","url(#bn)");svg.appendChild(bg);
+    for(var i=0;i<n;i++){var cx=gap*(i+.5),molar=(i<=1||i>=n-2),hw=hb*(molar?1.05:.82);[[-1,molar?86:70,56],[1,molar?92:74,58]].forEach(function(a){var dir=a[0],p=tp(cx,hw,bite+dir*6,dir,a[1],a[2],molar),f=dir<0?"url(#e2)":"url(#e1)";var r1=document.createElementNS(ns,"path");r1.setAttribute("d",p.ro);r1.setAttribute("fill",f);r1.setAttribute("opacity",".62");svg.appendChild(r1);var c1=document.createElementNS(ns,"path");c1.setAttribute("d",p.cr);c1.setAttribute("fill",f);c1.setAttribute("stroke","rgba(20,26,48,.5)");svg.appendChild(c1)})}
+    var ln=document.createElementNS(ns,"rect");ln.setAttribute("y",bite-5);ln.setAttribute("width",W);ln.setAttribute("height",10);ln.setAttribute("fill","rgba(8,11,22,.7)");svg.appendChild(ln)}
+  draw($("#film"));
+
+  // tabs
+  function show(id){["viewLogin","viewReg","viewForgot"].forEach(function(v){$("#"+v).classList.toggle("hide",v!==id)})}
+  function setTab(t){$("#tabLogin").classList.toggle("on",t==="login");$("#tabReg").classList.toggle("on",t==="reg");show(t==="login"?"viewLogin":"viewReg")}
+  $("#tabLogin").onclick=function(){setTab("login")};
+  $("#tabReg").onclick=function(){setTab("reg")};
+  $("#toReg").onclick=function(e){e.preventDefault();setTab("reg")};
+  $("#toLogin").onclick=function(e){e.preventDefault();setTab("login")};
+  $("#forgotLink").onclick=function(e){e.preventDefault();show("viewForgot")};
+  $("#backToLogin2").onclick=function(e){e.preventDefault();show("viewLogin")};
+  $("#sendReset").onclick=function(){this.textContent="Ссылка отправлена ✓";this.style.background="var(--good)"};
+
+  // password eye
+  $$(".eye").forEach(function(b){b.onclick=function(){var inp=document.getElementById(b.getAttribute("data-eye"));inp.type=inp.type==="password"?"text":"password";b.style.color=inp.type==="text"?"var(--coral)":"var(--ink-4)"}});
+
+  // onboarding steps
+  var step=0;
+  function goStep(s){step=s;[0,1,2].forEach(function(i){$("#regStep"+i).classList.toggle("hide",i!==s);var bar=$("#sb"+i);bar.className=i<s?"done":i===s?"cur":""});}
+  $$("[data-next]").forEach(function(b){b.onclick=function(){goStep(+b.getAttribute("data-next"))}});
+  $$("[data-back]").forEach(function(b){b.onclick=function(){goStep(+b.getAttribute("data-back"))}});
+  $$("#roleSeg .opt").forEach(function(o){o.onclick=function(){$$("#roleSeg .opt").forEach(function(x){x.classList.remove("on")});o.classList.add("on")}});
+
+  // hash deep-link
+  if(location.hash==="#reg")setTab("reg");
+})();
+</script>
+</body>
+</html>
