@@ -149,5 +149,14 @@
     ], 700);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion };
+  /* Сообщение пациенту в мессенджер по итогам плана (общая модель — GPT-4o) */
+  function patientMessage(patient, items, total) {
+    var list = items.map(function (it) { return it.label + " (зуб " + it.tooth + ")"; }).join(", ");
+    return complete(models().chat, [
+      { role: "system", content: SYS },
+      { role: "user", content: "Напиши короткое сообщение пациенту " + patient.name.split(" ")[0] + " в WhatsApp от клиники «Радикс»: дружелюбно, без медицинских терминов. По снимку предложен план лечения: " + list + ", итого " + total.toLocaleString("ru-RU") + " ₽. Предложи выбрать удобное время и задать вопросы. 3-5 предложений, 1-2 уместных эмодзи, без приветствия «Здравствуйте, уважаемый»." }
+    ], 350);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage };
 })();

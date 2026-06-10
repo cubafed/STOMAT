@@ -7,6 +7,17 @@ function PlanBuilder({ patient, ctx, embedded }) {
   const items = patient.findings.filter(f => findingInfo(f).price > 0).map(f => findingInfo(f));
   const [on, setOn] = useState(() => items.map(() => true));
   const [adv, setAdv] = useState(null); // { loading, text, mode }
+  const [pmsg, setPmsg] = useState(null); // сообщение пациенту
+  function aiMessage() {
+    setPmsg({ loading: true });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const sel = items.filter((it, i) => on[i]);
+    const tot = sel.reduce((s, it) => s + it.price, 0);
+    const demo = patient.name.split(" ")[0] + ", добрый день! Мы посмотрели ваш снимок — есть несколько участков, которые лучше полечить сейчас, пока это просто и недорого. Подготовили план из " + sel.length + " шагов на " + tot.toLocaleString("ru-RU") + " ₽. Напишите, когда вам удобно зайти, — подберём время 🙂 Клиника «Радикс»";
+    const run = live ? RadixAI.patientMessage(patient, sel, tot) : new Promise(res => setTimeout(() => res(demo), 800));
+    run.then(text => setPmsg({ text, mode: live ? RadixAI.models().chat : "демо" }))
+      .catch(err => { setPmsg(null); ctx.toast("AI недоступен: " + err.message); });
+  }
   function aiAdvice() {
     setAdv({ loading: true });
     const live = window.RadixAI && RadixAI.hasKey();
@@ -37,10 +48,20 @@ function PlanBuilder({ patient, ctx, embedded }) {
           React.createElement("div", { style: { fontWeight: 800, fontSize: 26, fontFamily: "var(--font-display)", color: "var(--primary-700)", whiteSpace: "nowrap" } }, fmt(total))),
         React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
           React.createElement("button", { className: "btn-app gho", onClick: aiAdvice, disabled: adv && adv.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
+          React.createElement("button", { className: "btn-app gho", onClick: aiMessage, disabled: pmsg && pmsg.loading }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Сообщение пациенту"),
           React.createElement("button", { className: "btn-app pri", onClick: () => {
             const stage = crmSetStage(patient.id, "plan");
             ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0] + (stage ? " · сделка → «" + stage.t + "»" : ""));
           } }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")))),
+    pmsg && !pmsg.loading ? React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid var(--line)", background: "#fff", overflow: "hidden" } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "12px 16px", borderBottom: "1px solid var(--line)" } },
+        React.createElement("span", { style: { color: "var(--good)" } }, React.createElement(Icon, { name: "chat", size: 16 })),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 14 } }, "Сообщение для WhatsApp / SMS"),
+        React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: pmsg.mode === "демо" ? "var(--warn)" : "var(--good)", background: pmsg.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "2px 9px", borderRadius: 999 } }, pmsg.mode),
+        React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
+          React.createElement("button", { className: "btn-app gho sm", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(pmsg.text); ctx.toast("Сообщение скопировано — вставьте в мессенджер"); } }, "Копировать"),
+          React.createElement("button", { style: { color: "var(--ink-3)" }, onClick: () => setPmsg(null) }, "✕"))),
+      React.createElement("div", { style: { padding: "14px 18px", whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 } }, pmsg.text)) : null,
     adv && !adv.loading ? React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid var(--line)", background: "#fff", overflow: "hidden" } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "12px 16px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 16 })),
