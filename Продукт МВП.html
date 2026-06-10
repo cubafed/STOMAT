@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Радикс Стоматология — рабочее место врача</title>
+<meta name="description" content="Рабочее место врача Радикс: AI-анализ снимков, пациенты, CRM-воронка, планы лечения и AI-ассистент.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='6'%20fill='%230B0B0E'/%3E%3Cpath%20d='M12%203c-2.2%200-3%201.4-5%201.4S4%203.6%204%206.5c0%204%201.4%206%202.2%209.2.5%202%20.8%204.3%202.3%204.3%201.3%200%201.2-2.4%202-4%20.4-.8.8-1.2%201.5-1.2s1.1.4%201.5%201.2c.8%201.6.7%204%202%204%201.5%200%201.8-2.3%202.3-4.3C18.6%2012.5%2020%2010.5%2020%206.5%2020%203.6%2019%204.4%2017%204.4S14.2%203%2012%203Z'%20fill='%23fff'/%3E%3Crect%20x='6.2'%20y='10.7'%20width='11.6'%20height='1.5'%20rx='.75'%20fill='%23FF5A36'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,17 +14,18 @@
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- Production React: исходники приложения — чистый JS (React.createElement), Babel не нужен -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="project/app/data.jsx"></script>
-<script type="text/babel" src="project/app/components.jsx"></script>
-<script type="text/babel" src="project/app/views.jsx"></script>
-<script type="text/babel" src="project/app/views2.jsx"></script>
-<script type="text/babel" src="project/app/views3.jsx"></script>
-<script type="text/babel" src="project/app/crm.jsx"></script>
-<script type="text/babel" src="project/app/main.jsx"></script>
+<script src="project/assets/ai.js"></script>
+<script src="project/app/data.js"></script>
+<script src="project/app/components.js"></script>
+<script src="project/app/views.js"></script>
+<script src="project/app/views2.js"></script>
+<script src="project/app/views3.js"></script>
+<script src="project/app/crm.js"></script>
+<script src="project/app/main.js"></script>
 <script src="project/app/enhance.js"></script>
 </body>
 </html>

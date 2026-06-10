@@ -69,12 +69,25 @@ function Assistant({ ctx }) {
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs, typing]);
   function send(text) {
     const q = (text != null ? text : val).trim(); if (!q) return;
-    setVal(""); setMsgs(m => [...m, { who: "me", text: q }]); setTyping(true);
-    setTimeout(() => {
-      const a = buildAnswer(q, patient);
-      setTyping(false); setMsgs(m => [...m, { who: "ai", ...a }]);
-    }, 950);
+    setVal("");
+    const hist = [...msgs, { who: "me", text: q }];
+    setMsgs(hist); setTyping(true);
+    if (window.RadixAI && RadixAI.hasKey()) {
+      RadixAI.ask(patient, hist)
+        .then(t => { setTyping(false); setMsgs(m => [...m, { who: "ai", text: t }]); })
+        .catch(err => {
+          setTyping(false);
+          setMsgs(m => [...m, { who: "ai", ...buildAnswer(q, patient) }]);
+          ctx.toast("AI недоступен (" + err.message + ") — демо-ответ");
+        });
+    } else {
+      setTimeout(() => {
+        const a = buildAnswer(q, patient);
+        setTyping(false); setMsgs(m => [...m, { who: "ai", ...a }]);
+      }, 950);
+    }
   }
+  const live = window.RadixAI && RadixAI.hasKey();
   const suggests = ["Что видно на снимке?", "Объясни пациенту простыми словами", "Предложи план лечения", "Оцени риск и прогноз"];
   return React.createElement("div", { className: "chatview" },
     React.createElement("div", { className: "chat-wrap" },
@@ -82,7 +95,8 @@ function Assistant({ ctx }) {
         React.createElement("div", { style: { width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,var(--primary),#6a83ff)", display: "grid", placeItems: "center", color: "#fff" } }, React.createElement(Icon, { name: "bolt", size: 18 })),
         React.createElement("div", { style: { flex: 1 } },
           React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)" } }, "Радикс Ассистент"),
-          React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)" } }, "Контекст: снимок и история пациента")),
+          React.createElement("div", { style: { fontSize: 12.5, color: live ? "var(--good)" : "var(--ink-3)", fontWeight: live ? 600 : 400 } },
+            live ? "● Live · " + RadixAI.models().chat + " · контекст пациента" : "Демо-режим · подключите AI в Настройках")),
         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, background: "var(--bg-soft)", border: "1px solid var(--line)", borderRadius: 999, padding: "5px 6px 5px 12px" } },
           React.createElement(Avatar, { name: patient.name, color: patient.color, size: 26, fontSize: 11 }),
           React.createElement("select", { value: pid, onChange: e => { const np = +e.target.value; setPid(np); const pp = PATIENTS.find(p => p.id === np); setMsgs([{ who: "ai", text: "Открыт пациент " + pp.name + ". Нашёл " + pp.findings.length + " находки на последнем снимке. Чем помочь?" }]); },
@@ -148,11 +162,54 @@ function Analytics({ ctx }) {
 }
 
 /* ---------------- SETTINGS ---------------- */
+function AISettingsCard({ ctx }) {
+  const [key, setKey] = useState(() => RadixAI.getKey());
+  const [am, setAm] = useState(() => RadixAI.models().analysis);
+  const [cm, setCm] = useState(() => RadixAI.models().chat);
+  const [showKey, setShowKey] = useState(false);
+  const [test, setTest] = useState(null); // null | "wait" | "ok" | "err: …"
+  function save() {
+    RadixAI.configure(key.trim(), am.trim(), cm.trim());
+    ctx.toast(key.trim() ? "AI подключён — заключения и чат работают вживую" : "Ключ удалён — приложение в демо-режиме");
+  }
+  function check() {
+    RadixAI.configure(key.trim(), am.trim(), cm.trim());
+    setTest("wait");
+    RadixAI.ping().then(() => setTest("ok")).catch(e => setTest("err: " + e.message));
+  }
+  const inp = { width: "100%", padding: "11px 14px", border: "1px solid var(--line)", borderRadius: 12, fontSize: 14, fontFamily: "inherit", outline: "none", background: "#fff", color: "var(--ink)" };
+  const lbl = { display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink-2)", marginBottom: 6 };
+  return React.createElement("div", { className: "card", style: { marginBottom: 18 } },
+    React.createElement(CardHead, { title: "Подключение AI (OpenAI)", icon: "bolt", right: RadixAI.hasKey() ? React.createElement(Tag, { c: "#18b27a", tint: "#E2F6EE" }, "Подключено") : React.createElement(Tag, { c: "var(--warn)", tint: "var(--warn-tint)" }, "Демо-режим") }),
+    React.createElement("div", { className: "card-pad" },
+      React.createElement("div", { style: { marginBottom: 14 } },
+        React.createElement("label", { style: lbl }, "Ключ API"),
+        React.createElement("div", { style: { display: "flex", gap: 8 } },
+          React.createElement("input", { style: Object.assign({}, inp, { flex: 1 }), type: showKey ? "text" : "password", placeholder: "sk-…", value: key, onChange: e => setKey(e.target.value) }),
+          React.createElement("button", { className: "btn-app gho", onClick: () => setShowKey(s => !s) }, showKey ? "Скрыть" : "Показать")),
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Ключ хранится только в этом браузере (localStorage) и отправляется напрямую в OpenAI.")),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 } },
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Модель анализа снимков"),
+          React.createElement("input", { style: inp, value: am, onChange: e => setAm(e.target.value) }),
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Заключения и объяснения · премиум")),
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Модель чата"),
+          React.createElement("input", { style: inp, value: cm, onChange: e => setCm(e.target.value) }),
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Ассистент · общий доступ"))),
+      React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } },
+        React.createElement("button", { className: "btn-app pri", onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), "Сохранить"),
+        React.createElement("button", { className: "btn-app gho", onClick: check, disabled: test === "wait" }, React.createElement(Icon, { name: "sparkle", size: 16 }), test === "wait" ? "Проверка…" : "Проверить соединение"),
+        test === "ok" ? React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#18b27a" } }, "✓ Соединение работает") : null,
+        test && test.indexOf("err") === 0 ? React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: "var(--danger)" } }, test.slice(5)) : null)));
+}
+
 function Settings({ ctx }) {
   const integ = [["IDENT", true], ["Dental4Web", true], ["StomX", true], ["MedFlow", true], ["КлиникаПро", false], ["1С:Медицина", false]];
   return React.createElement("div", { className: "content-pad", style: { maxWidth: 820 } },
     React.createElement("h1", { style: { fontSize: 26, fontFamily: "var(--font-display)", marginBottom: 4 } }, "Настройки"),
     React.createElement("p", { style: { color: "var(--ink-3)", marginBottom: 22 } }, "Интеграции, модель и параметры клиники"),
+    React.createElement(AISettingsCard, { ctx: ctx }),
     React.createElement("div", { className: "card", style: { marginBottom: 18 } },
       React.createElement(CardHead, { title: "Интеграции с CRM", icon: "layers" }),
       React.createElement("div", { className: "card-pad", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, integ.map(([n, on], i) =>

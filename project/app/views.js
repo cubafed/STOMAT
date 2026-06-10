@@ -212,9 +212,26 @@ function Analysis({ ctx }) {
   const [filter, setFilter] = useState("all");   // all | caries | tartar | periap | resto
   const [sort, setSort] = useState("conf");        // conf | tooth
   const [pan, setPan] = useState({ x: 50, y: 50 });
+  const [minPc, setMinPc] = useState(70);
+  const [aiRep, setAiRep] = useState(null); // { loading, kind, text, mode }
   if (!patient) return null;
 
   function decide(i, v) { setDecided(d => ({ ...d, [i]: d[i] === v ? null : v })); }
+  function localReport(kind) {
+    const lines = patient.findings.map(f => { const inf = findingInfo(f); return "• Зуб " + inf.tooth + " — " + inf.label + " (" + inf.loc + "), уверенность " + f.pc + "%"; });
+    if (kind === "patient")
+      return "На снимке мы нашли несколько участков, которые требуют внимания — в том числе начинающееся разрушение на " + patient.findings.length + " зубах. Сейчас всё это лечится просто и быстро. Если отложить, лечение станет сложнее и дороже. Рекомендуем записаться на лечение в ближайшие недели.";
+    return "ОПИСАНИЕ СНИМКА\nBitewing-снимок удовлетворительного качества, зубные ряды визуализируются полностью.\n\nНАХОДКИ (" + patient.findings.length + ")\n" + lines.join("\n") + "\n\nРЕКОМЕНДАЦИИ\nЛечение по приоритету уверенности находок; начать с кариозных поражений.\n\nКОНТРОЛЬ\nКонтрольный снимок через 6 месяцев.";
+  }
+  function aiReport(kind) {
+    setAiRep({ loading: true, kind });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const run = live
+      ? (kind === "patient" ? RadixAI.explain(patient) : RadixAI.report(patient))
+      : new Promise(res => setTimeout(() => res(localReport(kind)), 900));
+    run.then(text => setAiRep({ kind, text, mode: live ? RadixAI.models().analysis : "демо" }))
+      .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
+  }
   function rescan() {
     setScanning(true); setShowDet(false);
     setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + patient.findings.length + " находки"); }, 2100);
@@ -228,8 +245,9 @@ function Analysis({ ctx }) {
   // findings with original index, filtered + sorted
   let rows = patient.findings.map((f, i) => ({ f, i, info: findingInfo(f) }));
   if (filter !== "all") rows = rows.filter(r => (r.f.type === "cariesE" ? "caries" : r.f.type) === filter);
+  rows = rows.filter(r => r.f.pc >= minPc);
   rows = rows.slice().sort((a, b) => sort === "conf" ? b.f.pc - a.f.pc : (("" + a.f.tooth).localeCompare("" + b.f.tooth)));
-  const visibleDets = patient.findings.filter((f, i) => decided[i] !== "rej" && (filter === "all" || (f.type === "cariesE" ? "caries" : f.type) === filter));
+  const visibleDets = patient.findings.filter((f, i) => decided[i] !== "rej" && f.pc >= minPc && (filter === "all" || (f.type === "cariesE" ? "caries" : f.type) === filter));
 
   const filmStyle = {
     transform: `scale(${zoom})`, transformOrigin: `${pan.x}% ${pan.y}%`,
@@ -247,10 +265,12 @@ function Analysis({ ctx }) {
       React.createElement("div", null,
         React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", fontSize: 19 } }, patient.name),
         React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, "Bitewing справа · 12.09.2025 · 2.4 МП · DICOM")),
-      React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
+      React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" } },
         React.createElement("button", { className: "btn-app gho", onClick: rescan }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Повторный анализ"),
         React.createElement("button", { className: "btn-app gho", onClick: () => setCompare(c => !c) }, React.createElement(Icon, { name: "history", size: 16 }), compare ? "Один снимок" : "До / после"),
-        React.createElement("button", { className: "btn-app gho" }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
+        React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
+        React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
+        React.createElement("button", { className: "btn-app gho", onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
 
     // progress strip
     React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
@@ -295,6 +315,9 @@ function Analysis({ ctx }) {
         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--ink-3)", marginBottom: 4 } }, "Сортировка:",
           React.createElement("button", { className: "rv-fchip" + (sort === "conf" ? " on" : ""), style: { padding: "3px 9px" }, onClick: () => setSort("conf") }, "по уверенности"),
           React.createElement("button", { className: "rv-fchip" + (sort === "tooth" ? " on" : ""), style: { padding: "3px 9px" }, onClick: () => setSort("tooth") }, "по зубу")),
+        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, color: "var(--ink-3)", margin: "4px 0 2px" } }, "Порог:",
+          React.createElement("input", { type: "range", min: 50, max: 95, value: minPc, onChange: e => setMinPc(+e.target.value), style: { flex: 1, accentColor: "var(--primary)" } }),
+          React.createElement("b", { style: { color: "var(--primary)", fontVariantNumeric: "tabular-nums", minWidth: 34, textAlign: "right" } }, minPc + "%")),
         React.createElement("div", { style: { flex: 1, overflowY: "auto", margin: "6px -4px 0", padding: "0 4px" } }, rows.length ? rows.map(({ f, i, info }) => {
           const d = decided[i];
           return React.createElement("div", { key: i, className: "finding" + (d === "rej" ? " dim" : "") + (hot === i ? " hot" : ""), onMouseEnter: () => setHot(i), onMouseLeave: () => setHot(-1) },
@@ -308,7 +331,18 @@ function Analysis({ ctx }) {
               React.createElement("button", { className: "fbtn rej" + (d === "rej" ? " on" : ""), title: "Отклонить", onClick: () => decide(i, "rej") }, React.createElement(Icon, { name: "x", size: 15 })))); }) :
           React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", fontSize: 13.5, padding: "30px 0" } }, "Нет находок этого типа")),
         React.createElement("button", { className: "btn-app pri", style: { marginTop: 14, width: "100%" }, onClick: () => ctx.openPlan(patient.id) },
-          React.createElement(Icon, { name: "doc", size: 16 }), "Сформировать план (" + (accepted || pending) + ")"))));
+          React.createElement(Icon, { name: "doc", size: 16 }), "Сформировать план (" + (accepted || pending) + ")"))),
+
+    // AI report panel
+    aiRep && !aiRep.loading ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, padding: "14px 20px", borderBottom: "1px solid var(--line)" } },
+        React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "bolt", size: 18 })),
+        React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, aiRep.kind === "patient" ? "Объяснение для пациента" : "AI-заключение по снимку"),
+        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: aiRep.mode === "демо" ? "var(--warn)" : "var(--good)", background: aiRep.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "3px 10px", borderRadius: 999 } }, aiRep.mode === "демо" ? "Демо · подключите ключ в Настройках" : aiRep.mode),
+        React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8 } },
+          React.createElement("button", { className: "btn-app gho", onClick: () => { navigator.clipboard && navigator.clipboard.writeText(aiRep.text); ctx.toast("Заключение скопировано"); } }, React.createElement(Icon, { name: "doc", size: 15 }), "Копировать"),
+          React.createElement("button", { className: "btn-app gho", onClick: () => setAiRep(null) }, React.createElement(Icon, { name: "x", size: 15 })))),
+      React.createElement("div", { style: { padding: "18px 22px", whiteSpace: "pre-wrap", fontSize: 14.5, lineHeight: 1.65, maxWidth: 860 } }, aiRep.text)) : null);
 }
 
 Object.assign(window, { Dashboard, Patients, PatientDetail, Analysis });
