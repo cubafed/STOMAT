@@ -214,40 +214,84 @@ function Analysis({ ctx }) {
   const [pan, setPan] = useState({ x: 50, y: 50 });
   const [minPc, setMinPc] = useState(70);
   const [aiRep, setAiRep] = useState(null); // { loading, kind, text, mode }
+  const [img, setImg] = useState(null);           // dataURL загруженного снимка
+  const [imgFinds, setImgFinds] = useState(null); // находки vision-анализа
+  const fileRef = useRef(null);
   if (!patient) return null;
 
+  const findings = imgFinds || patient.findings;
+  const aip = imgFinds ? { name: patient.name, findings } : patient; // контекст для AI-вызовов
+
   function decide(i, v) { setDecided(d => ({ ...d, [i]: d[i] === v ? null : v })); }
+  function demoVisionFinds() {
+    const tpl = [
+      { type: "caries", tooth: 36, loc: "дистально", pc: 91 }, { type: "cariesE", tooth: 15, loc: "медиально", pc: 84 },
+      { type: "tartar", tooth: "нижний фронт", loc: "придёсенно", pc: 79 }, { type: "resto", tooth: 46, loc: "композит", pc: 97 },
+      { type: "periap", tooth: 16, loc: "апекс", pc: 87 }
+    ];
+    const n = 3 + Math.floor(Math.random() * 2);
+    return tpl.slice(0, n).map((f, i) => ({ ...f, box: { x: 10 + (i * 22) % 70, y: 18 + (i * 17) % 55, w: 11 + (i % 3) * 2, h: 13 + (i % 2) * 3 } }));
+  }
+  function onFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ""; if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const url = rd.result;
+      setImg(url); setImgFinds(null); setDecided({}); setAiRep(null); setCompare(false);
+      setScanning(true); setShowDet(false);
+      const live = window.RadixAI && RadixAI.hasKey();
+      const run = live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 2200));
+      run.then(fs => {
+        setImgFinds(fs); setScanning(false); setShowDet(true);
+        ctx.toast((live ? RadixAI.models().analysis : "Демо") + ": найдено находок — " + fs.length);
+      }).catch(err => {
+        setScanning(false); setImg(null);
+        ctx.toast("Vision-анализ не удался: " + err.message);
+      });
+    };
+    rd.readAsDataURL(file);
+  }
+  function resetImg() { setImg(null); setImgFinds(null); setDecided({}); setAiRep(null); setShowDet(true); }
   function localReport(kind) {
-    const lines = patient.findings.map(f => { const inf = findingInfo(f); return "• Зуб " + inf.tooth + " — " + inf.label + " (" + inf.loc + "), уверенность " + f.pc + "%"; });
+    const lines = findings.map(f => { const inf = findingInfo(f); return "• Зуб " + inf.tooth + " — " + inf.label + " (" + inf.loc + "), уверенность " + f.pc + "%"; });
     if (kind === "patient")
-      return "На снимке мы нашли несколько участков, которые требуют внимания — в том числе начинающееся разрушение на " + patient.findings.length + " зубах. Сейчас всё это лечится просто и быстро. Если отложить, лечение станет сложнее и дороже. Рекомендуем записаться на лечение в ближайшие недели.";
-    return "ОПИСАНИЕ СНИМКА\nBitewing-снимок удовлетворительного качества, зубные ряды визуализируются полностью.\n\nНАХОДКИ (" + patient.findings.length + ")\n" + lines.join("\n") + "\n\nРЕКОМЕНДАЦИИ\nЛечение по приоритету уверенности находок; начать с кариозных поражений.\n\nКОНТРОЛЬ\nКонтрольный снимок через 6 месяцев.";
+      return "На снимке мы нашли несколько участков, которые требуют внимания — в том числе начинающееся разрушение на " + findings.length + " зубах. Сейчас всё это лечится просто и быстро. Если отложить, лечение станет сложнее и дороже. Рекомендуем записаться на лечение в ближайшие недели.";
+    return "ОПИСАНИЕ СНИМКА\nBitewing-снимок удовлетворительного качества, зубные ряды визуализируются полностью.\n\nНАХОДКИ (" + findings.length + ")\n" + lines.join("\n") + "\n\nРЕКОМЕНДАЦИИ\nЛечение по приоритету уверенности находок; начать с кариозных поражений.\n\nКОНТРОЛЬ\nКонтрольный снимок через 6 месяцев.";
   }
   function aiReport(kind) {
     setAiRep({ loading: true, kind });
     const live = window.RadixAI && RadixAI.hasKey();
     const run = live
-      ? (kind === "patient" ? RadixAI.explain(patient) : RadixAI.report(patient))
+      ? (kind === "patient" ? RadixAI.explain(aip) : RadixAI.report(aip))
       : new Promise(res => setTimeout(() => res(localReport(kind)), 900));
     run.then(text => setAiRep({ kind, text, mode: live ? RadixAI.models().analysis : "демо" }))
       .catch(err => { setAiRep(null); ctx.toast("AI недоступен: " + err.message); });
   }
   function rescan() {
+    if (img) {
+      setScanning(true); setShowDet(false); setDecided({});
+      const live = window.RadixAI && RadixAI.hasKey();
+      const run = live ? RadixAI.analyzeImage(img) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 2100));
+      run.then(fs => { setImgFinds(fs); setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + fs.length); })
+        .catch(err => { setScanning(false); setShowDet(true); ctx.toast("Ошибка: " + err.message); });
+      return;
+    }
     setScanning(true); setShowDet(false);
-    setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + patient.findings.length + " находки"); }, 2100);
+    setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + findings.length + " находки"); }, 2100);
   }
   function resetView() { setZoom(1); setContrast(1); setInvert(false); setPan({ x: 50, y: 50 }); }
 
-  const accepted = patient.findings.filter((f, i) => decided[i] === "acc").length;
-  const rejected = patient.findings.filter((f, i) => decided[i] === "rej").length;
-  const pending = patient.findings.length - accepted - rejected;
+  const accepted = findings.filter((f, i) => decided[i] === "acc").length;
+  const rejected = findings.filter((f, i) => decided[i] === "rej").length;
+  const pending = findings.length - accepted - rejected;
 
   // findings with original index, filtered + sorted
-  let rows = patient.findings.map((f, i) => ({ f, i, info: findingInfo(f) }));
+  let rows = findings.map((f, i) => ({ f, i, info: findingInfo(f) }));
   if (filter !== "all") rows = rows.filter(r => (r.f.type === "cariesE" ? "caries" : r.f.type) === filter);
   rows = rows.filter(r => r.f.pc >= minPc);
   rows = rows.slice().sort((a, b) => sort === "conf" ? b.f.pc - a.f.pc : (("" + a.f.tooth).localeCompare("" + b.f.tooth)));
-  const visibleDets = patient.findings.filter((f, i) => decided[i] !== "rej" && f.pc >= minPc && (filter === "all" || (f.type === "cariesE" ? "caries" : f.type) === filter));
+  const visibleDets = findings.filter((f, i) => decided[i] !== "rej" && f.pc >= minPc && (filter === "all" || (f.type === "cariesE" ? "caries" : f.type) === filter));
 
   const filmStyle = {
     transform: `scale(${zoom})`, transformOrigin: `${pan.x}% ${pan.y}%`,
@@ -264,10 +308,13 @@ function Analysis({ ctx }) {
       React.createElement(Avatar, { name: patient.name, color: patient.color, size: 42, radius: "13px" }),
       React.createElement("div", null,
         React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", fontSize: 19 } }, patient.name),
-        React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, "Bitewing справа · 12.09.2025 · 2.4 МП · DICOM")),
+        React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, img ? "Загруженный снимок · vision-анализ" : "Bitewing справа · 12.09.2025 · 2.4 МП · DICOM")),
       React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" } },
+        React.createElement("input", { ref: fileRef, type: "file", accept: "image/*", style: { display: "none" }, onChange: onFile }),
+        React.createElement("button", { className: "btn-app gho", onClick: () => fileRef.current && fileRef.current.click() }, React.createElement(Icon, { name: "scan", size: 16 }), "Загрузить снимок"),
+        img ? React.createElement("button", { className: "btn-app gho", onClick: resetImg }, React.createElement(Icon, { name: "x", size: 16 }), "К снимку из карточки") : null,
         React.createElement("button", { className: "btn-app gho", onClick: rescan }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Повторный анализ"),
-        React.createElement("button", { className: "btn-app gho", onClick: () => setCompare(c => !c) }, React.createElement(Icon, { name: "history", size: 16 }), compare ? "Один снимок" : "До / после"),
+        img ? null : React.createElement("button", { className: "btn-app gho", onClick: () => setCompare(c => !c) }, React.createElement(Icon, { name: "history", size: 16 }), compare ? "Один снимок" : "До / после"),
         React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
         React.createElement("button", { className: "btn-app gho", onClick: () => { ctx.toast("Готовим PDF…"); setTimeout(() => window.print(), 400); } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
@@ -283,7 +330,7 @@ function Analysis({ ctx }) {
       React.createElement("div", { className: "rv-stage" },
         React.createElement("div", { className: "rv-toolbar" },
           React.createElement("span", { className: "rv-chip" }, React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: scanning ? "var(--warn)" : "#18A06E", display: "inline-block" } }), scanning ? "Анализ…" : "Анализ завершён"),
-          React.createElement("span", { className: "rv-chip" }, "Радикс-Vision 3.1"),
+          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().analysis + " vision" : "Демо-Vision") : "Радикс-Vision 3.1"),
           React.createElement("div", { className: "rv-spacer" }),
           React.createElement("button", { className: "rv-tool" + (showDet ? " on" : ""), title: "Показать находки", onClick: () => setShowDet(s => !s) }, React.createElement(Icon, { name: "eye", size: 16 })),
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),
@@ -294,10 +341,12 @@ function Analysis({ ctx }) {
           ? React.createElement(BeforeAfter, { before: Object.assign({}, patient.arch), after: Object.assign({}, patient.arch, { decayAt: [], restoreAt: patient.arch.decayAt[0] != null ? patient.arch.decayAt[0] : patient.arch.restoreAt }), tagBefore: "До · март", tagAfter: "После · сентябрь" })
           : React.createElement("div", { className: "rv-film", onMouseMove: e => { if (zoom > 1) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
               React.createElement("div", { className: "rv-film-inner", style: filmStyle },
-                React.createElement(Arch, patient.arch)),
+                img
+                  ? React.createElement("img", { src: img, alt: "Снимок", style: { width: "100%", height: "100%", objectFit: "cover", display: "block" } })
+                  : React.createElement(Arch, patient.arch)),
               scanning ? React.createElement("div", { className: "scanline" }) : null,
               showDet && !scanning ? React.createElement("div", { className: "det-layer" }, visibleDets.map((f) => {
-                const oi = patient.findings.indexOf(f); const info = findingInfo(f);
+                const oi = findings.indexOf(f); const info = findingInfo(f);
                 return React.createElement("div", { key: oi, className: "det" + (hot === oi ? " hot" : ""), style: { left: f.box.x + "%", top: f.box.y + "%", width: f.box.w + "%", height: f.box.h + "%", "--c": info.c }, onMouseEnter: () => setHot(oi), onMouseLeave: () => setHot(-1) },
                   React.createElement("div", { className: "box" }),
                   React.createElement("div", { className: "lbl" }, info.label.split(" ")[0], React.createElement("span", { className: "pc" }, f.pc + "%"))); })) : null,
