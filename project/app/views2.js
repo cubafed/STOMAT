@@ -287,6 +287,60 @@ function PriceCard({ ctx }) {
         React.createElement("button", { className: "btn-app gho", onClick: reset }, "Сбросить"))));
 }
 
+function DataCard({ ctx }) {
+  const fileRef = useRef(null);
+  function collect() {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("rdx_") === 0) out[k] = localStorage.getItem(k); // ключ AI (radix_ai_*) не попадает
+    }
+    return out;
+  }
+  function doExport() {
+    const data = { app: "radix", exported: new Date().toISOString(), keys: collect() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "radix-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    ctx.toast("Резервная копия скачана (" + Object.keys(data.keys).length + " записей)");
+  }
+  function doImport(e) {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = ""; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const data = JSON.parse(rd.result);
+        if (!data || data.app !== "radix" || !data.keys) throw new Error("это не файл резервной копии Радикс");
+        Object.keys(data.keys).forEach(k => { if (k.indexOf("rdx_") === 0) localStorage.setItem(k, data.keys[k]); });
+        ctx.toast("Данные восстановлены — перезагружаю…");
+        setTimeout(() => location.reload(), 900);
+      } catch (err) { ctx.toast("Импорт не удался: " + err.message); }
+    };
+    rd.readAsText(f);
+  }
+  function doClear() {
+    if (!window.confirm("Удалить все данные клиники из этого браузера (пациенты, снимки, заключения, воронка)? Ключ AI останется.")) return;
+    const keys = Object.keys(collect());
+    keys.forEach(k => localStorage.removeItem(k));
+    ctx.toast("Данные очищены — перезагружаю…");
+    setTimeout(() => location.reload(), 900);
+  }
+  return React.createElement("div", { className: "card", style: { marginBottom: 18 } },
+    React.createElement(CardHead, { title: "Данные клиники", icon: "shield" }),
+    React.createElement("div", { className: "card-pad" },
+      React.createElement("p", { style: { fontSize: 13.5, color: "var(--ink-3)", marginBottom: 14 } },
+        "Все данные хранятся в этом браузере. Скачайте копию, чтобы перенести клинику на другой компьютер или не потерять при очистке браузера. Ключ AI в копию не входит."),
+      React.createElement("input", { ref: fileRef, type: "file", accept: "application/json", style: { display: "none" }, onChange: doImport }),
+      React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+        React.createElement("button", { className: "btn-app pri", onClick: doExport }, React.createElement(Icon, { name: "doc", size: 16 }), "Экспорт данных"),
+        React.createElement("button", { className: "btn-app gho", onClick: () => fileRef.current && fileRef.current.click() }, React.createElement(Icon, { name: "share", size: 16 }), "Импорт из файла"),
+        React.createElement("button", { className: "btn-app gho", style: { color: "var(--danger)" }, onClick: doClear }, React.createElement(Icon, { name: "x", size: 16 }), "Очистить данные"))));
+}
+
 function Settings({ ctx }) {
   const integ = [["IDENT", true], ["Dental4Web", true], ["StomX", true], ["MedFlow", true], ["КлиникаПро", false], ["1С:Медицина", false]];
   return React.createElement("div", { className: "content-pad", style: { maxWidth: 820 } },
@@ -304,6 +358,7 @@ function Settings({ ctx }) {
             React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)", marginTop: 3 } }, s))))),
     React.createElement(PriceCard, { ctx: ctx }),
     React.createElement(AISettingsCard, { ctx: ctx }),
+    React.createElement(DataCard, { ctx: ctx }),
     React.createElement("div", { className: "card", style: { marginBottom: 18 } },
       React.createElement(CardHead, { title: "Интеграции с CRM", icon: "layers" }),
       React.createElement("div", { className: "card-pad", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } }, integ.map(([n, on], i) =>
