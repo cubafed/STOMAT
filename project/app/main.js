@@ -146,8 +146,18 @@ function Coach({ ctx }) {
       React.createElement("button", { className: "btn-app pri", onClick: next }, i < STEPS.length - 1 ? "Далее" : "Понятно")));
 }
 
+const ROLE_INFO = {
+  doc: { l: "Врач", sub: "Стоматолог-терапевт", hide: [] },
+  admin: { l: "Админ", sub: "Администратор", hide: ["analysis", "assistant", "plan"] },
+  assist: { l: "Ассистент", sub: "Ассистент врача", hide: ["crm", "billing", "analytics"] }
+};
+
 function App() {
   const [view, setView] = useState("dashboard");
+  const [role, setRoleState] = useState(() => RadixStore.get("role", "doc"));
+  function setRole(r) { setRoleState(r); RadixStore.set("role", r); }
+  const hidden = (ROLE_INFO[role] || ROLE_INFO.doc).hide;
+  useEffect(() => { if (hidden.indexOf(view) > -1) setView("dashboard"); }, [role]);
   const [patientId, setPatientId] = useState(1);
   const [toast, setToastState] = useState({ msg: "", show: false });
   const [dark, setDark] = useDarkTheme();
@@ -187,7 +197,7 @@ function App() {
     openAnalysis: id => { if (id) setPatientId(id); setView("analysis"); setDrawer(false); },
     openPlan: id => { if (id) setPatientId(id); setView("plan"); setDrawer(false); },
     openAssistant: id => { if (id) setPatientId(id); setView("assistant"); setDrawer(false); },
-    toast: showToast
+    toast: showToast, role, setRole
   };
 
   const NAV = [
@@ -264,7 +274,7 @@ function App() {
         React.createElement(Icon, { name: "search", size: 16 }),
         React.createElement("span", { style: { flex: 1 } }, "Поиск…"),
         React.createElement("kbd", null, "⌘K")),
-      React.createElement("nav", { className: "side-nav" }, NAV.map((n, i) =>
+      React.createElement("nav", { className: "side-nav" }, NAV.filter(n => n.sec || hidden.indexOf(n.k) === -1).map((n, i) =>
         n.sec ? React.createElement("div", { key: i, className: "side-sec" }, n.sec) :
           React.createElement("button", { key: i, className: "nav-item" + (view === n.k ? " active" : ""), onClick: () => ctx.setView(n.k) },
             React.createElement(Icon, { name: n.ic, size: 19 }), React.createElement("span", { style: { flex: 1 } }, n.l),
@@ -279,7 +289,7 @@ function App() {
           React.createElement("div", { className: "av" }, "АП"),
           React.createElement("div", { style: { flex: 1 } },
             React.createElement("div", { className: "d-name" }, "Алексей Петров"),
-            React.createElement("div", { className: "d-role" }, "Стоматолог-терапевт")),
+            React.createElement("div", { className: "d-role" }, (ROLE_INFO[role] || ROLE_INFO.doc).sub)),
           React.createElement("button", { className: "icon-btn", style: { width: 34, height: 34 }, onClick: () => ctx.setView("settings") }, React.createElement(Icon, { name: "settings", size: 16 }))))),
     // Main
     React.createElement("div", { className: "main" },
