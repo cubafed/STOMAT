@@ -245,12 +245,12 @@ const CRM_STAGES = [
 ];
 const CRM_CARDS = [
   { id: "c1", pid: 4, name: "Дмитрий Орлов", color: PALS[3], stage: "new", work: "Кариес · эндодонтия", val: 21000, date: "Сегодня", prob: 35, src: "Сайт" },
-  { id: "c2", pid: null, name: "Ольга Титова", color: "#E8941F", stage: "new", work: "Первичная консультация", val: 3500, date: "Сегодня", prob: 25, src: "Instagram" },
+  { id: "c2", pid: 7, name: "Ольга Титова", color: "#E8941F", stage: "new", work: "Первичная консультация", val: 3500, date: "Сегодня", prob: 25, src: "Instagram" },
   { id: "c3", pid: 1, name: "Анна Ковалёва", color: PALS[0], stage: "consult", work: "Лечение кариеса 26", val: 13000, date: "Завтра", prob: 60, src: "Повторный" },
-  { id: "c4", pid: null, name: "Сергей Мальков", color: "#2F4BF0", stage: "consult", work: "Имплантация", val: 78000, date: "26 июня", prob: 55, src: "Рекомендация" },
+  { id: "c4", pid: 8, name: "Сергей Мальков", color: "#2F4BF0", stage: "consult", work: "Имплантация", val: 78000, date: "26 июня", prob: 55, src: "Рекомендация" },
   { id: "c5", pid: 2, name: "Игорь Семёнов", color: PALS[1], stage: "plan", work: "Эндодонтия 16", val: 24000, date: "Ожидает 2 дня", prob: 70, src: "Сайт" },
   { id: "c6", pid: 5, name: "Елена Васина", color: PALS[4], stage: "plan", work: "Реставрация + гигиена", val: 11000, date: "Ожидает 1 день", prob: 75, src: "Повторный" },
-  { id: "c7", pid: null, name: "Никита Власов", color: "#7C5CFF", stage: "treat", work: "Ортодонтия · элайнеры", val: 145000, date: "Этап 2 из 8", prob: 90, src: "Рекомендация" },
+  { id: "c7", pid: 9, name: "Никита Власов", color: "#7C5CFF", stage: "treat", work: "Ортодонтия · элайнеры", val: 145000, date: "Этап 2 из 8", prob: 90, src: "Рекомендация" },
   { id: "c8", pid: 3, name: "Мария Лебедева", color: PALS[2], stage: "treat", work: "Отбеливание", val: 18000, date: "Этап 1 из 2", prob: 92, src: "Повторный" },
   { id: "c9", pid: 6, name: "Павел Гущин", color: PALS[5], stage: "done", work: "Профгигиена", val: 3800, date: "30.07", prob: 100, src: "Повторный" }
 ];
@@ -367,6 +367,7 @@ const BILLING = {
   const arch = RadixStore.get("archived_patients", []);
   for (let i = PATIENTS.length - 1; i >= 0; i--) if (arch.indexOf(PATIENTS[i].id) > -1) PATIENTS.splice(i, 1);
   RadixStore.get("custom_events", []).forEach(e => CAL_EVENTS.push(e));
+  RadixStore.get("custom_crm_cards", []).forEach(c => CRM_CARDS.push(c));
 })();
 function persistCustomPatients() {
   RadixStore.set("custom_patients", PATIENTS.filter(p => p.id >= 100));
@@ -409,15 +410,74 @@ function addCalEvent(ev) {
   rerenderApp();
 }
 
-/* Связка с CRM: подвинуть сделку пациента на стадию (персистентно) */
-function crmSetStage(pid, stageId) {
-  const card = CRM_CARDS.find(c => c.pid === pid);
-  if (!card) return null;
+/* Связка с CRM: найти сделку пациента или создать кастомную (персистентно) */
+function crmEnsureCard(patient, work, val) {
+  let card = CRM_CARDS.find(c => c.pid === patient.id);
+  if (card) return card;
+  card = {
+    id: "cc" + patient.id, pid: patient.id, name: patient.name, color: patient.color,
+    stage: "plan", work: work || "План лечения", val: val || 0, prob: 60,
+    src: "Платформа", date: "Сегодня"
+  };
+  CRM_CARDS.push(card);
+  const custom = RadixStore.get("custom_crm_cards", []);
+  custom.push(card); RadixStore.set("custom_crm_cards", custom);
+  return card;
+}
+
+/* Подвинуть сделку пациента на стадию; ensure {work, val} — создать сделку, если её нет */
+function crmSetStage(pid, stageId, ensure) {
+  let card = CRM_CARDS.find(c => c.pid === pid);
+  if (!card) {
+    if (!ensure) return null;
+    const p = PATIENTS.find(x => x.id === pid);
+    if (!p) return null;
+    card = crmEnsureCard(p, ensure.work, ensure.val);
+  }
   const st = RadixStore.get("crm_stages", {});
-  if (st[card.id] === stageId) return null; // уже там
   st[card.id] = stageId;
   RadixStore.set("crm_stages", st);
   return CRM_STAGES.find(s => s.id === stageId);
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, addPatient, updatePatient, archivePatient, addCalEvent });
+/* ---------- Финансы: реальные оплаты ---------- */
+function getPayments() { return RadixStore.get("payments", []); }
+function addPayment(p) {
+  const list = getPayments();
+  list.unshift({ id: "pay" + Date.now() + "_" + Math.floor(Math.random() * 1e4), date: new Date().toISOString(), pid: p.pid, name: p.name, label: p.label, amount: p.amount });
+  RadixStore.set("payments", list);
+  rerenderApp();
+  return list[0];
+}
+function paymentsThisMonth() {
+  const now = new Date();
+  return getPayments().filter(p => {
+    const d = new Date(p.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+}
+
+/* ---------- Жизненный цикл плана лечения ---------- */
+function getPlan(pid) { return RadixStore.get("plan_" + pid, { status: "draft", items: null, done: {} }); }
+function setPlanState(pid, patch) {
+  const cur = getPlan(pid);
+  const next = Object.assign({}, cur, patch);
+  RadixStore.set("plan_" + pid, next);
+  return next;
+}
+
+/* ---------- Счётчик заключений (ключи rdx_reports_*, тяжёлые rdx_img_* не читаем) ---------- */
+function countReports() {
+  let n = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("rdx_reports_") === 0) {
+        try { n += (JSON.parse(localStorage.getItem(k)) || []).length; } catch (e) {}
+      }
+    }
+  } catch (e) {}
+  return n;
+}
+
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports });
