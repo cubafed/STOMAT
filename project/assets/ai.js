@@ -182,5 +182,13 @@
     ], 450);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing };
+  /* Напоминание пациенту о приёме (общая модель — GPT-4o) */
+  function remind(name, work, when) {
+    return complete(models().chat, [
+      { role: "system", content: SYS },
+      { role: "user", content: "Напиши короткое напоминание пациенту " + name.split(" ")[0] + " в WhatsApp от клиники «Радикс» о приёме: " + work + ", " + when + ". Дружелюбно, 2-3 предложения, попроси подтвердить визит или предупредить о переносе, 1 уместный эмодзи." }
+    ], 220);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind };
 })();

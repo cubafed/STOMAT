@@ -93,6 +93,19 @@ function Calendar({ ctx }) {
   const [mode, setMode] = useState("week");
   const [day, setDay] = useState(0);
   const [bookings, setBookings] = useState(() => RadixStore.get("bookings", []));
+  const [sel, setSel] = useState(null);       // выбранный приём
+  const [rem, setRem] = useState(null);       // { loading, text, mode }
+  function pick(ev, dayLabel) { setSel({ ev, when: dayLabel }); setRem(null); }
+  function makeReminder() {
+    if (!sel) return;
+    setRem({ loading: true });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const when = sel.when;
+    const demo = sel.ev.name.split(" ")[0] + ", напоминаем: ждём вас " + when + " — " + sel.ev.work.toLowerCase() + ". Если планы изменятся, пожалуйста, предупредите нас заранее 🙂 Клиника «Радикс»";
+    const run = live ? RadixAI.remind(sel.ev.name, sel.ev.work, when) : new Promise(res => setTimeout(() => res(demo), 700));
+    run.then(text => setRem({ text, mode: live ? RadixAI.models().chat : "демо" }))
+      .catch(err => { setRem(null); ctx.toast("AI недоступен: " + err.message); });
+  }
   function bookingAction(b, accept) {
     const rest = bookings.filter(x => x.id !== b.id);
     setBookings(rest); RadixStore.set("bookings", rest);
@@ -153,7 +166,7 @@ function Calendar({ ctx }) {
             CAL_DAYS.map((d, di) => React.createElement("div", { key: di, className: "cal-daycol" },
               hours.map(h => React.createElement("div", { key: h, className: "cal-slot", onClick: () => ctx.toast("Свободный слот · " + d + " " + h + ":00") })),
               CAL_EVENTS.filter(e => e.day === di).map((ev, i) =>
-                React.createElement("div", { key: i, className: "cal-event", style: eventStyle(ev), onClick: () => { if (ev.pid) ctx.openPatient(ev.pid); else ctx.toast(ev.name + " · " + ev.work); } },
+                React.createElement("div", { key: i, className: "cal-event", style: eventStyle(ev), onClick: () => pick(ev, CAL_DAYS[di] + " в " + Math.floor(ev.start) + ":" + ("0" + Math.round((ev.start % 1) * 60)).slice(-2)) },
                   React.createElement("div", { className: "ce-t" }, ev.name.split(" ")[0] + " " + (ev.name.split(" ")[1] || "")),
                   React.createElement("div", { className: "ce-s" }, ev.work)))))))
       : React.createElement("div", null,
@@ -163,14 +176,34 @@ function Calendar({ ctx }) {
             const ev = CAL_EVENTS.find(e => e.day === day && Math.floor(e.start) === h);
             return React.createElement("div", { key: h, className: "cal-day-row" },
               React.createElement("div", { className: "cal-day-time" }, h + ":00"),
-              ev ? React.createElement("div", { className: "cal-day-card", style: { background: ev.color }, onClick: () => { if (ev.pid) ctx.openPatient(ev.pid); else ctx.toast(ev.name); } },
+              ev ? React.createElement("div", { className: "cal-day-card", style: { background: ev.color }, onClick: () => pick(ev, CAL_DAYS[day] + " в " + Math.floor(ev.start) + ":" + ("0" + Math.round((ev.start % 1) * 60)).slice(-2)) },
                 React.createElement(Avatar, { name: ev.name, color: "rgba(255,255,255,.25)", size: 38, radius: "11px" }),
                 React.createElement("div", null,
                   React.createElement("div", { style: { fontWeight: 700 } }, ev.name),
                   React.createElement("div", { style: { fontSize: 13, opacity: .9 } }, ev.work)),
                 React.createElement("span", { style: { marginLeft: "auto", fontWeight: 700, fontSize: 13 } }, ev.dur + " ч")) :
                 React.createElement("div", { className: "cal-day-empty", onClick: () => ctx.toast("Записать на " + h + ":00") }, React.createElement(Icon, { name: "plus", size: 15 }), "Свободно"));
-          }))));
+          }))),
+
+    // панель выбранного приёма: карточка пациента + AI-напоминание
+    sel ? React.createElement("div", { className: "card", style: { marginTop: 18 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: rem && !rem.loading ? "1px solid var(--line)" : "none", flexWrap: "wrap" } },
+        React.createElement(Avatar, { name: sel.ev.name, color: sel.ev.color, size: 40 }),
+        React.createElement("div", { style: { flex: 1, minWidth: 160 } },
+          React.createElement("div", { style: { fontWeight: 700, fontSize: 15 } }, sel.ev.name),
+          React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, sel.ev.work + " · " + sel.when)),
+        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+          sel.ev.pid && PATIENTS.find(p => p.id === sel.ev.pid)
+            ? React.createElement("button", { className: "btn-app gho sm", onClick: () => ctx.openPatient(sel.ev.pid) }, React.createElement(Icon, { name: "users", size: 14 }), "Карточка")
+            : null,
+          React.createElement("button", { className: "btn-app pri sm", onClick: makeReminder, disabled: rem && rem.loading }, React.createElement(Icon, { name: "chat", size: 14 }), rem && rem.loading ? "Пишу…" : "Напоминание (AI)"),
+          React.createElement("button", { className: "btn-app gho sm", onClick: () => { setSel(null); setRem(null); } }, "✕"))),
+      rem && !rem.loading ? React.createElement("div", { style: { padding: "14px 20px" } },
+        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 } },
+          React.createElement("b", { style: { fontSize: 13 } }, "Напоминание для WhatsApp / SMS"),
+          React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: rem.mode === "демо" ? "var(--warn)" : "var(--good)", background: rem.mode === "демо" ? "var(--warn-tint)" : "var(--good-tint)", padding: "2px 8px", borderRadius: 999 } }, rem.mode),
+          React.createElement("button", { className: "btn-app gho sm", style: { marginLeft: "auto" }, onClick: () => { navigator.clipboard && navigator.clipboard.writeText(rem.text); ctx.toast("Напоминание скопировано"); } }, "Копировать")),
+        React.createElement("div", { style: { whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6, padding: "12px 14px", background: "var(--bg-soft)", borderRadius: 10 } }, rem.text)) : null) : null);
 }
 
 /* ---------------- NOTIFICATIONS ---------------- */
