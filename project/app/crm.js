@@ -14,7 +14,11 @@ function CRM({ ctx }) {
 
   const totalVal = cards.filter(c => c.stage !== "done").reduce((s, c) => s + c.val, 0);
   const weighted = Math.round(cards.filter(c => c.stage !== "done").reduce((s, c) => s + c.val * c.prob / 100, 0));
-  const wonMonth = cards.filter(c => c.stage === "done").reduce((s, c) => s + c.val, 0) + 184000;
+  // выручка месяца: реальные оплаты + done-сделки без оплат (чтобы не считать дважды)
+  const paidMonth = paymentsThisMonth();
+  const paidPids = {}; paidMonth.forEach(p => { paidPids[p.pid] = true; });
+  const wonMonth = paidMonth.reduce((s, p) => s + p.amount, 0) +
+    cards.filter(c => c.stage === "done" && !paidPids[c.pid]).reduce((s, c) => s + c.val, 0);
   const convRate = 68;
   const fmt = n => n.toLocaleString("ru-RU") + " ₽";
 

@@ -265,6 +265,28 @@ function Assistant({ ctx }) {
         React.createElement("div", { style: { textAlign: "center", fontSize: 11.5, color: "var(--ink-4)", marginTop: 8 } }, "Радикс Ассистент помогает врачу и не является медицинским заключением"))));
 }
 
+/* ---------------- PAYMENTS (живые оплаты) ---------------- */
+function PaymentsCard({ ctx }) {
+  const all = getPayments();
+  const month = paymentsThisMonth();
+  const monthSum = month.reduce((s, p) => s + p.amount, 0);
+  const fmt = n => n.toLocaleString("ru-RU") + " ₽";
+  return React.createElement("div", { className: "card", style: { marginTop: 20 } },
+    React.createElement(CardHead, { title: "Оплаты по планам лечения", icon: "cash",
+      right: month.length ? React.createElement(Tag, { c: "#18b27a", tint: "#E2F6EE" }, fmt(monthSum) + " за месяц") : null }),
+    all.length ? React.createElement("div", null, all.slice(0, 7).map((p, i) =>
+      React.createElement("div", { key: p.id, style: { display: "flex", alignItems: "center", gap: 13, padding: "12px 20px", borderBottom: i < Math.min(all.length, 7) - 1 ? "1px solid var(--line)" : "none", cursor: p.pid ? "pointer" : "default" }, onClick: () => { if (p.pid) ctx.openPatient(p.pid); } },
+        React.createElement(Avatar, { name: p.name, color: "#18A06E", size: 36 }),
+        React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+          React.createElement("div", { style: { fontWeight: 600, fontSize: 14 } }, p.name),
+          React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)" } }, p.label)),
+        React.createElement("div", { style: { textAlign: "right" } },
+          React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--good)" } }, "+" + fmt(p.amount)),
+          React.createElement("div", { style: { fontSize: 11.5, color: "var(--ink-4)" } }, new Date(p.date).toLocaleDateString("ru-RU"))))))
+      : React.createElement("div", { style: { padding: "26px 20px", textAlign: "center", color: "var(--ink-4)", fontSize: 14 } },
+        "Оплат пока нет. Отметьте этап «Выполнен и оплачен» в принятом плане лечения — оплата появится здесь."));
+}
+
 /* ---------------- ANALYTICS ---------------- */
 function Analytics({ ctx }) {
   const bars = [
@@ -294,6 +316,7 @@ function Analytics({ ctx }) {
               React.createElement("span", { style: { fontWeight: 600 } }, d.l), React.createElement("span", { style: { color: "var(--ink-3)" } }, d.v + "%")),
             React.createElement("div", { style: { height: 9, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },
               React.createElement("div", { style: { width: d.v + "%", height: "100%", borderRadius: 99, background: d.c } }))))) )),
+    React.createElement(PaymentsCard, { ctx: ctx }),
     React.createElement("div", { className: "stat-grid", style: { marginTop: 20 } }, [
       { n: "98,2%", l: "Точность детекции", c: "#3B5BFF", bg: "#ECF0FF", ic: "sparkle" },
       { n: "91%", l: "Подтверждено врачом", c: "#18b27a", bg: "#E2F6EE", ic: "check" },
