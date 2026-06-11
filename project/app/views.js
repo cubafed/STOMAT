@@ -581,7 +581,15 @@ function Analysis({ ctx }) {
               React.createElement("button", { className: "fbtn acc" + (d === "acc" ? " on" : ""), title: "Подтвердить", onClick: () => decide(i, "acc") }, React.createElement(Icon, { name: "check", size: 15 })),
               React.createElement("button", { className: "fbtn rej" + (d === "rej" ? " on" : ""), title: "Отклонить", onClick: () => decide(i, "rej") }, React.createElement(Icon, { name: "x", size: 15 })))); }) :
           React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", fontSize: 13.5, padding: "30px 0" } }, "Нет находок этого типа")),
-        React.createElement("button", { className: "btn-app pri", style: { marginTop: 14, width: "100%" }, onClick: () => { crmSetStage(patient.id, "consult"); ctx.openPlan(patient.id); } },
+        React.createElement("button", { className: "btn-app pri", style: { marginTop: 14, width: "100%" }, onClick: () => {
+          if (imgFinds) { // vision-находки становятся официальными находками пациента
+            const keep = findings.filter((f, i) => decided[i] !== "rej");
+            updatePatient(patient.id, { findings: keep, flag: keep.some(f => f.type === "caries" || f.type === "cariesE") ? "caries" : keep.some(f => f.type === "periap") ? "periap" : "ok" });
+            ctx.toast("Находки сохранены в карточку: " + keep.length);
+          }
+          crmSetStage(patient.id, "consult");
+          ctx.openPlan(patient.id);
+        } },
           React.createElement(Icon, { name: "doc", size: 16 }), "Сформировать план (" + (accepted || pending) + ")"))),
 
     // панель диктовки

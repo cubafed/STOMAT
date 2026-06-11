@@ -3,16 +3,82 @@
    ============================================================ */
 
 /* ---------------- PLAN BUILDER ---------------- */
+const PLAN_STATUS = {
+  draft: { l: "Черновик", c: "var(--ink-3)", tint: "var(--bg-soft)" },
+  sent: { l: "Отправлен пациенту", c: "var(--warn)", tint: "var(--warn-tint)" },
+  accepted: { l: "Принят · в работе", c: "var(--good)", tint: "var(--good-tint)" },
+  declined: { l: "Отклонён", c: "var(--danger)", tint: "#FCE6E2" }
+};
+
 function PlanBuilder({ patient, ctx, embedded }) {
-  const items = patient.findings.filter(f => findingInfo(f).price > 0).map(f => findingInfo(f));
+  const [plan, setPlanLocal] = useState(() => getPlan(patient.id));
+  const draftItems = patient.findings.filter(f => findingInfo(f).price > 0).map(f => findingInfo(f));
+  const sent = plan.status !== "draft" && plan.items && plan.items.length;
+  const items = sent ? plan.items : draftItems;
   const [on, setOn] = useState(() => items.map(() => true));
   const [adv, setAdv] = useState(null); // { loading, text, mode }
   const [pmsg, setPmsg] = useState(null); // сообщение пациенту
+  useEffect(() => {
+    const p = getPlan(patient.id);
+    setPlanLocal(p);
+    const len = (p.status !== "draft" && p.items) ? p.items.length : patient.findings.filter(f => findingInfo(f).price > 0).length;
+    setOn(Array.from({ length: len }, () => true));
+    setAdv(null); setPmsg(null);
+  }, [patient.id]);
+
+  function patch(p) { setPlanLocal(setPlanState(patient.id, p)); }
+  const fmt = n => n.toLocaleString("ru-RU") + " ₽";
+  const selItems = sent ? items : items.filter((it, i) => on[i]);
+  const total = selItems.reduce((s, it) => s + it.price, 0);
+  const doneCount = sent ? items.filter((it, i) => plan.done && plan.done[i]).length : 0;
+  const paidSum = sent ? items.reduce((s, it, i) => s + (plan.done && plan.done[i] ? it.price : 0), 0) : 0;
+  const allDone = sent && items.length > 0 && doneCount === items.length;
+  const st = PLAN_STATUS[plan.status] || PLAN_STATUS.draft;
+
+  function sendPlan() {
+    const sel = items.filter((it, i) => on[i]);
+    if (!sel.length) return;
+    const snap = sel.map(it => ({ type: it.type, label: it.label, tooth: it.tooth, price: it.price, sev: it.sev, pc: it.pc, tint: it.tint, c: it.c }));
+    patch({ status: "sent", sentAt: new Date().toISOString(), items: snap, done: {} });
+    const stage = crmSetStage(patient.id, "plan", { work: snap[0].label + (snap.length > 1 ? " +" + (snap.length - 1) : ""), val: snap.reduce((s, it) => s + it.price, 0) });
+    ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0] + (stage ? " · сделка → «" + stage.t + "»" : ""));
+  }
+  function acceptPlan() {
+    patch({ status: "accepted" });
+    const stage = crmSetStage(patient.id, "treat", { work: "План лечения", val: total });
+    ctx.toast("План принят" + (stage ? " · сделка → «" + stage.t + "»" : "") + ". Отмечайте этапы по мере выполнения.");
+  }
+  function declinePlan() {
+    patch({ status: "declined" });
+    crmSetStage(patient.id, "consult");
+    ctx.toast("План отклонён — сделка возвращена на «Консультацию»");
+  }
+  function resetPlan() {
+    patch({ status: "draft", items: null, done: {}, sentAt: null });
+    setOn(draftItems.map(() => true));
+    ctx.toast("Новый черновик плана");
+  }
+  function completeStep(i) {
+    if (plan.done && plan.done[i]) return;
+    const done = Object.assign({}, plan.done, { [i]: true });
+    patch({ done });
+    const it = items[i];
+    addPayment({ pid: patient.id, name: patient.name, label: it.label + " · зуб " + it.tooth, amount: it.price });
+    const d = new Date();
+    const dd = ("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2) + "." + d.getFullYear();
+    updatePatient(patient.id, { visits: [{ t: it.label + " · зуб " + it.tooth, d: dd, c: "#18A06E" }].concat(patient.visits || []) });
+    const all = items.every((x, k) => done[k]);
+    if (all) {
+      crmSetStage(patient.id, "done");
+      ctx.toast("План завершён 🎉 Сделка → «Завершён», оплачено " + fmt(items.reduce((s, x) => s + x.price, 0)));
+    } else {
+      ctx.toast("Этап оплачен: " + fmt(it.price));
+    }
+  }
   function aiMessage() {
     setPmsg({ loading: true });
     const live = window.RadixAI && RadixAI.hasKey();
-    const sel = items.filter((it, i) => on[i]);
-    const tot = sel.reduce((s, it) => s + it.price, 0);
+    const sel = selItems, tot = total;
     const demo = patient.name.split(" ")[0] + ", добрый день! Мы посмотрели ваш снимок — есть несколько участков, которые лучше полечить сейчас, пока это просто и недорого. Подготовили план из " + sel.length + " шагов на " + tot.toLocaleString("ru-RU") + " ₽. Напишите, когда вам удобно зайти, — подберём время 🙂 Клиника «Радикс»";
     const run = live ? RadixAI.patientMessage(patient, sel, tot) : new Promise(res => setTimeout(() => res(demo), 800));
     run.then(text => setPmsg({ text, mode: live ? RadixAI.models().chat : "демо" }))
@@ -26,33 +92,61 @@ function PlanBuilder({ patient, ctx, embedded }) {
     run.then(text => setAdv({ text, mode: live ? RadixAI.models().analysis : "демо" }))
       .catch(err => { setAdv(null); ctx.toast("AI недоступен: " + err.message); });
   }
-  const total = items.reduce((s, it, i) => s + (on[i] ? it.price : 0), 0);
-  const fmt = n => n.toLocaleString("ru-RU") + " ₽";
-  function toggle(i) { setOn(o => o.map((v, k) => k === i ? !v : v)); }
+  function toggle(i) { if (!sent) setOn(o => o.map((v, k) => k === i ? !v : v)); }
+
+  // кнопки нижней панели по статусу
+  let actions;
+  if (plan.status === "draft") actions = [
+    React.createElement("button", { key: "a", className: "btn-app gho", onClick: aiAdvice, disabled: (adv && adv.loading) || !items.length }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
+    React.createElement("button", { key: "m", className: "btn-app gho", onClick: aiMessage, disabled: (pmsg && pmsg.loading) || !selItems.length }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Сообщение пациенту"),
+    React.createElement("button", { key: "s", className: "btn-app pri", disabled: !selItems.length, onClick: sendPlan }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")
+  ];
+  else if (plan.status === "sent") actions = [
+    React.createElement("button", { key: "m", className: "btn-app gho", onClick: aiMessage, disabled: pmsg && pmsg.loading }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Напомнить пациенту"),
+    React.createElement("button", { key: "d", className: "btn-app gho", style: { color: "var(--danger)" }, onClick: declinePlan }, React.createElement(Icon, { name: "x", size: 16 }), "Отклонил"),
+    React.createElement("button", { key: "ok", className: "btn-app pri", onClick: acceptPlan }, React.createElement(Icon, { name: "check", size: 16 }), "Пациент принял")
+  ];
+  else if (plan.status === "accepted") actions = [
+    allDone
+      ? React.createElement("button", { key: "n", className: "btn-app pri", onClick: resetPlan }, React.createElement(Icon, { name: "plus", size: 16 }), "Новый план")
+      : React.createElement("span", { key: "p", style: { fontSize: 13.5, color: "var(--ink-3)", alignSelf: "center" } }, "Выполнено " + doneCount + " из " + items.length + " · оплачено " + fmt(paidSum))
+  ];
+  else actions = [ // declined
+    React.createElement("button", { key: "n", className: "btn-app pri", onClick: resetPlan }, React.createElement(Icon, { name: "plus", size: 16 }), "Новый план")
+  ];
+
   const body = React.createElement("div", null,
     React.createElement("div", { style: { borderRadius: embedded ? 14 : "var(--r-lg)", border: "1px solid var(--line)", overflow: "hidden", background: "#fff" } },
-      React.createElement("div", { style: { padding: "13px 18px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10 } },
+      React.createElement("div", { style: { padding: "13px 18px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "doc", size: 18 })),
         React.createElement("b", { style: { fontFamily: "var(--font-display)", fontSize: 15 } }, "План лечения"),
-        React.createElement("span", { style: { marginLeft: "auto", fontSize: 13, color: "var(--ink-3)" } }, on.filter(Boolean).length + " из " + items.length + " этапов")),
-      items.map((it, i) => React.createElement("div", { key: i, className: "plan-item" + (on[i] ? "" : " off") },
-        React.createElement("div", { className: "pcheck" + (on[i] ? " on" : ""), onClick: () => toggle(i) }, React.createElement(Icon, { name: "check", size: 14 })),
-        React.createElement("div", { className: "plan-tooth", style: { background: it.tint, color: it.c } }, React.createElement(Icon, { name: "tooth", size: 18 })),
-        React.createElement("div", { style: { flex: 1 } },
-          React.createElement("div", { style: { fontWeight: 600, fontSize: 14.5 } }, it.label + " · зуб " + it.tooth),
-          React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)" } }, "Приоритет: " + it.sev + " · уверенность ИИ " + it.pc + "%")),
-        React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", whiteSpace: "nowrap" } }, fmt(it.price)))),
+        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: st.c, background: st.tint, padding: "3px 10px", borderRadius: 999 } }, allDone ? "Завершён · оплачен" : st.l),
+        React.createElement("span", { style: { marginLeft: "auto", fontSize: 13, color: "var(--ink-3)" } },
+          sent ? items.length + " этапов" + (plan.status === "accepted" ? " · " + doneCount + " выполнено" : "") : on.filter(Boolean).length + " из " + items.length + " этапов")),
+      items.length ? items.map((it, i) => {
+        const stepDone = sent && plan.done && plan.done[i];
+        return React.createElement("div", { key: i, className: "plan-item" + (!sent && !on[i] ? " off" : "") },
+          !sent
+            ? React.createElement("div", { className: "pcheck" + (on[i] ? " on" : ""), onClick: () => toggle(i) }, React.createElement(Icon, { name: "check", size: 14 }))
+            : null,
+          React.createElement("div", { className: "plan-tooth", style: { background: it.tint, color: it.c } }, React.createElement(Icon, { name: "tooth", size: 18 })),
+          React.createElement("div", { style: { flex: 1 } },
+            React.createElement("div", { style: { fontWeight: 600, fontSize: 14.5, textDecoration: stepDone ? "line-through" : "none", opacity: stepDone ? .65 : 1 } }, it.label + " · зуб " + it.tooth),
+            React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)" } }, "Приоритет: " + it.sev + " · уверенность ИИ " + it.pc + "%")),
+          plan.status === "accepted"
+            ? (stepDone
+              ? React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: "var(--good)", background: "var(--good-tint)", padding: "5px 11px", borderRadius: 999, whiteSpace: "nowrap" } }, "✓ Оплачено")
+              : React.createElement("button", { className: "btn-app pri sm", onClick: () => completeStep(i), style: { whiteSpace: "nowrap" } }, "Выполнен и оплачен"))
+            : null,
+          React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", whiteSpace: "nowrap", marginLeft: 10 } }, fmt(it.price)));
+      }) : React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", fontSize: 14, padding: "26px 16px" } },
+        "Этапов пока нет — подтвердите находки в анализе снимка, и план соберётся сам."),
       React.createElement("div", { className: "plan-total" },
         React.createElement("div", null,
-          React.createElement("div", { style: { fontSize: 13, color: "var(--primary-700)", opacity: .85 } }, "Итого по плану"),
-          React.createElement("div", { style: { fontWeight: 800, fontSize: 26, fontFamily: "var(--font-display)", color: "var(--primary-700)", whiteSpace: "nowrap" } }, fmt(total))),
-        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-          React.createElement("button", { className: "btn-app gho", onClick: aiAdvice, disabled: adv && adv.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
-          React.createElement("button", { className: "btn-app gho", onClick: aiMessage, disabled: pmsg && pmsg.loading }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Сообщение пациенту"),
-          React.createElement("button", { className: "btn-app pri", onClick: () => {
-            const stage = crmSetStage(patient.id, "plan");
-            ctx.toast("План отправлен пациенту " + patient.name.split(" ")[0] + (stage ? " · сделка → «" + stage.t + "»" : ""));
-          } }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")))),
+          React.createElement("div", { style: { fontSize: 13, color: "var(--primary-700)", opacity: .85 } }, plan.status === "accepted" ? "Оплачено / итого" : "Итого по плану"),
+          React.createElement("div", { style: { fontWeight: 800, fontSize: 26, fontFamily: "var(--font-display)", color: "var(--primary-700)", whiteSpace: "nowrap" } },
+            plan.status === "accepted" ? fmt(paidSum) + " / " + fmt(total) : fmt(total))),
+        React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, actions))),
     pmsg && !pmsg.loading ? React.createElement("div", { style: { marginTop: 14, borderRadius: 14, border: "1px solid var(--line)", background: "#fff", overflow: "hidden" } },
       React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, padding: "12px 16px", borderBottom: "1px solid var(--line)" } },
         React.createElement("span", { style: { color: "var(--good)" } }, React.createElement(Icon, { name: "chat", size: 16 })),
@@ -81,7 +175,7 @@ function PlanBuilder({ patient, ctx, embedded }) {
         React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", fontSize: 18 } }, "План лечения · " + patient.name),
         React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, "Сформирован из подтверждённых находок ИИ")),
       React.createElement("button", { className: "btn-app gho", style: { marginLeft: "auto" }, onClick: () => {
-        const sel = items.filter((it, i) => on[i]);
+        const sel = selItems;
         const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
         if (RadixPrint.open({ title: "План лечения", patient: patient.name, doctor,
           rows: sel.map(it => ({ label: it.label + " · зуб " + it.tooth, sub: "Приоритет: " + it.sev + " · уверенность ИИ " + it.pc + "%", price: it.price })),
