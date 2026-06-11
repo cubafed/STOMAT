@@ -190,5 +190,13 @@
     ], 220);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind };
+  /* Скоринг сделки в воронке (общая модель — GPT-4o) */
+  function dealAdvice(card, stageTitle) {
+    return complete(models().chat, [
+      { role: "system", content: "Ты — опытный администратор стоматологической клиники, который помогает закрывать сделки. Отвечай по-русски, конкретно, 2-3 предложения." },
+      { role: "user", content: "Сделка: " + card.name + " · " + card.work + " · " + card.val.toLocaleString("ru-RU") + " ₽ · стадия «" + stageTitle + "» · вероятность " + card.prob + "% · источник: " + card.src + " · " + card.date + ".\nОцени перспективы и назови ОДИН следующий конкретный шаг, чтобы продвинуть сделку." }
+    ], 220);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice };
 })();

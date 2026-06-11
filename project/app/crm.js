@@ -8,6 +8,20 @@ function CRM({ ctx }) {
   });
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
+  const [advice, setAdvice] = useState(null); // { cardId, loading, text, mode }
+  function scoreDeal(card, stage) {
+    if (advice && advice.cardId === card.id && !advice.loading) { setAdvice(null); return; } // повторный клик — скрыть
+    setAdvice({ cardId: card.id, loading: true });
+    const live = window.RadixAI && RadixAI.hasKey();
+    const demo = card.prob >= 75
+      ? "Сделка горячая (" + card.prob + "%) — пациент почти готов. Следующий шаг: позвоните сегодня и предложите конкретное время записи."
+      : card.prob >= 45
+        ? "Средняя готовность (" + card.prob + "%). Следующий шаг: отправьте короткое сообщение с планом и ответьте на вопросы по стоимости — источник «" + card.src + "» хорошо конвертируется после личного контакта."
+        : "Холодный лид (" + card.prob + "%). Следующий шаг: не продавайте лечение сразу — пригласите на бесплатную консультацию со снимком.";
+    const run = live ? RadixAI.dealAdvice(card, stage.t) : new Promise(res => setTimeout(() => res(demo), 600));
+    run.then(text => setAdvice({ cardId: card.id, text, mode: live ? RadixAI.models().chat : "демо" }))
+      .catch(err => { setAdvice(null); ctx.toast("AI недоступен: " + err.message); });
+  }
 
   const byStage = {};
   CRM_STAGES.forEach(s => { byStage[s.id] = cards.filter(c => c.stage === s.id); });
@@ -85,6 +99,10 @@ function CRM({ ctx }) {
                   React.createElement("div", { style: { flex: 1, minWidth: 0 } },
                     React.createElement("div", { className: "kc-name" }, card.name),
                     React.createElement("div", { className: "kc-sub" }, card.work)),
+                  React.createElement("button", {
+                    className: "fbtn", title: "AI-оценка сделки", style: { width: 28, height: 28, color: "var(--primary)" },
+                    onClick: e => { e.stopPropagation(); scoreDeal(card, stage); }
+                  }, advice && advice.cardId === card.id && advice.loading ? "…" : React.createElement(Icon, { name: "sparkle", size: 14 })),
                   stage.id !== "done" ? React.createElement("button", {
                     className: "fbtn", title: "Продвинуть", style: { width: 28, height: 28 },
                     onClick: e => { e.stopPropagation(); advance(card); }
@@ -93,7 +111,13 @@ function CRM({ ctx }) {
                 React.createElement("div", { className: "kc-foot" },
                   React.createElement("span", { className: "kc-val", style: { color: stage.c } }, fmt(card.val)),
                   React.createElement("span", { style: { fontSize: 11, color: "var(--ink-4)", fontWeight: 600 } }, card.prob + "%"),
-                  React.createElement("span", { className: "kc-date" }, card.date)))),
+                  React.createElement("span", { className: "kc-date" }, card.date)),
+                advice && advice.cardId === card.id && !advice.loading ? React.createElement("div", {
+                  onClick: e => e.stopPropagation(),
+                  style: { marginTop: 9, padding: "9px 11px", borderRadius: 10, background: "var(--primary-tint)", fontSize: 12, lineHeight: 1.5, color: "var(--primary-700)", cursor: "default" } },
+                  React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, fontWeight: 700, marginBottom: 4, fontSize: 11 } },
+                    React.createElement(Icon, { name: "sparkle", size: 12 }), "AI · " + advice.mode),
+                  advice.text) : null)),
               byStage[stage.id].length === 0 ? React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-4)", textAlign: "center", padding: "18px 0" } }, "Пусто") : null))))),
 
       // FOLLOW-UPS + sources
