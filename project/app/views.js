@@ -3,6 +3,47 @@
    ============================================================ */
 
 /* ---------------- DASHBOARD ---------------- */
+function BriefingCard({ ctx, schedule, bookingsN, monthSum }) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const cached = RadixStore.get("briefing", null);
+  const [brief, setBrief] = useState(() => (cached && cached.day === todayKey) ? cached : null);
+  const [busy, setBusy] = useState(false);
+  function buildSummary() {
+    const probl = PATIENTS.filter(p => p.flag !== "ok").map(p => p.name + " (" + statusTag(p.flag).t.toLowerCase() + ")");
+    const pipeline = CRM_STAGES.map(s => {
+      const st = RadixStore.get("crm_stages", {});
+      const n = CRM_CARDS.filter(c => (st[c.id] || c.stage) === s.id).length;
+      return s.t + ": " + n;
+    }).join(", ");
+    return "Приёмы сегодня (" + schedule.length + "): " + (schedule.map(a => a.t + " " + a.n + " — " + a.w).join("; ") || "нет") +
+      ".\nНовые онлайн-заявки: " + bookingsN +
+      ".\nВоронка: " + pipeline +
+      ".\nОплачено за месяц: " + monthSum.toLocaleString("ru-RU") + " ₽." +
+      "\nПациенты, требующие внимания: " + (probl.join(", ") || "нет") + ".";
+  }
+  function run() {
+    setBusy(true);
+    const live = window.RadixAI && RadixAI.hasKey();
+    const demo = "• Сегодня " + schedule.length + " приёмов — первый в " + (schedule[0] ? schedule[0].t + " (" + schedule[0].n + ")" : "—") + ".\n" +
+      (bookingsN ? "• " + bookingsN + " новых заявок с сайта ждут подтверждения в расписании.\n" : "") +
+      "• Оплачено за месяц: " + monthSum.toLocaleString("ru-RU") + " ₽.\n" +
+      "• Пациенты с активными находками: " + PATIENTS.filter(p => p.flag !== "ok").length + " — проверьте статусы планов.\n" +
+      "Рекомендация: начните с подтверждения заявок и отправки незакрытых планов лечения.";
+    const p = live ? RadixAI.briefing(buildSummary()) : new Promise(res => setTimeout(() => res(demo), 700));
+    p.then(text => {
+      const b = { day: todayKey, text, mode: live ? RadixAI.models().chat : "демо" };
+      RadixStore.set("briefing", b); setBrief(b); setBusy(false);
+    }).catch(err => { setBusy(false); ctx.toast("AI недоступен: " + err.message); });
+  }
+  return React.createElement("div", { className: "card", style: { marginTop: 20 } },
+    React.createElement(CardHead, { title: "AI-брифинг дня", icon: "bolt",
+      right: React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } },
+        brief ? React.createElement(Tag, { c: brief.mode === "демо" ? "var(--warn)" : "#18b27a", tint: brief.mode === "демо" ? "var(--warn-tint)" : "#E2F6EE" }, brief.mode) : null,
+        React.createElement("button", { className: "btn-app gho sm", onClick: run, disabled: busy }, busy ? "Готовлю…" : brief ? "Обновить" : "Собрать брифинг")) }),
+    React.createElement("div", { style: { padding: "16px 20px", whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.65, color: brief ? "var(--ink)" : "var(--ink-4)" } },
+      brief ? brief.text : "Сводка дня одной кнопкой: приёмы, заявки, деньги, на что обратить внимание. Кэшируется на день."));
+}
+
 function Dashboard({ ctx }) {
   const uname = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name.split(" ")[0];
   const h = new Date().getHours();
@@ -37,6 +78,8 @@ function Dashboard({ ctx }) {
         React.createElement("div", { className: "s-num" }, s.num),
         React.createElement("div", { className: "s-lbl" }, s.lbl),
         React.createElement("div", { className: "s-trend " + (s.up ? "s-up" : "s-down") }, React.createElement(Icon, { name: "arrow", size: 13, style: { transform: "rotate(-45deg)" } }), s.tr)))),
+
+    React.createElement(BriefingCard, { ctx, schedule, bookingsN, monthSum }),
 
     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, marginTop: 20, alignItems: "start" } },
       React.createElement("div", { className: "card" },

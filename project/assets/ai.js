@@ -174,5 +174,13 @@
     ], 800);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation };
+  /* Утренний брифинг по клинике (общая модель — GPT-4o) */
+  function briefing(summary) {
+    return complete(models().chat, [
+      { role: "system", content: SYS },
+      { role: "user", content: "Ты — операционный ассистент клиники. Вот сводка на сегодня:\n" + summary + "\n\nСделай короткий брифинг для врача: 3-5 пунктов маркером «•» (самое важное: приёмы, заявки, деньги, проблемные пациенты) и в конце одну строку «Рекомендация: …» с самым полезным действием дня. Без приветствий и преамбулы." }
+    ], 450);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing };
 })();
