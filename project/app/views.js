@@ -5,24 +5,28 @@
 /* ---------------- DASHBOARD ---------------- */
 function Dashboard({ ctx }) {
   const uname = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name.split(" ")[0];
+  const h = new Date().getHours();
+  const hello = h < 5 ? "Доброй ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер";
+  const today = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+  const bookingsN = RadixStore.get("bookings", []).length;
+  const reportsN = countReports();
+  const monthSum = paymentsThisMonth().reduce((s, p) => s + p.amount, 0);
+  const fmtK = n => n >= 1000 ? Math.round(n / 1000).toLocaleString("ru-RU") + " тыс ₽" : n + " ₽";
   const stats = [
-    { ic: "scan", c: "#3B5BFF", bg: "#ECF0FF", num: "142", lbl: "Снимков за неделю", tr: "+18%", up: true },
-    { ic: "shield", c: "#f0533f", bg: "#FCE6E2", num: "37", lbl: "Найдено патологий", tr: "+6", up: true },
-    { ic: "doc", c: "#18b27a", bg: "#E2F6EE", num: "24", lbl: "Планов отправлено", tr: "+12%", up: true },
-    { ic: "check", c: "#7c5cff", bg: "#efeaff", num: "82%", lbl: "Принято пациентами", tr: "+9%", up: true }
+    { ic: "users", c: "#3B5BFF", bg: "#ECF0FF", num: "" + PATIENTS.length, lbl: "Пациентов в базе", tr: "живые данные", up: true },
+    { ic: "doc", c: "#7c5cff", bg: "#efeaff", num: "" + reportsN, lbl: "AI-заключений сохранено", tr: "все пациенты", up: true },
+    { ic: "bell", c: "#f0533f", bg: "#FCE6E2", num: "" + bookingsN, lbl: "Онлайн-заявки ждут", tr: bookingsN ? "подтвердите" : "пусто", up: !bookingsN },
+    { ic: "cash", c: "#18b27a", bg: "#E2F6EE", num: monthSum ? fmtK(monthSum) : "0 ₽", lbl: "Оплачено за месяц", tr: "из планов", up: true }
   ];
-  const schedule = [
-    { t: "09:00", n: "Дмитрий Орлов", w: "Консультация · план лечения", c: PALS[3], st: "Сейчас" },
-    { t: "10:00", n: "Анна Ковалёва", w: "Лечение кариеса 26", c: PALS[0], st: "" },
-    { t: "11:30", n: "Игорь Семёнов", w: "Эндодонтия 16 · этап 2", c: PALS[1], st: "" },
-    { t: "14:30", n: "Елена Васина", w: "Реставрация 25", c: PALS[4], st: "" }
-  ];
+  const fmtTime = s => Math.floor(s) + ":" + ("0" + Math.round((s % 1) * 60)).slice(-2);
+  const schedule = CAL_EVENTS.filter(e => e.day === 0).sort((a, b) => a.start - b.start).slice(0, 6)
+    .map((e, i) => ({ t: fmtTime(e.start), n: e.name, w: e.work, c: e.color, pid: e.pid, st: i === 0 ? "Сейчас" : "" }));
   const queue = PATIENTS.filter(p => p.flag !== "ok").slice(0, 3);
   return React.createElement("div", { className: "content-pad" },
     React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 24, flexWrap: "wrap" } },
       React.createElement("div", null,
-        React.createElement("h1", { style: { fontSize: 28, fontFamily: "var(--font-display)", letterSpacing: "-.02em" } }, "Добрый день, " + uname),
-        React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, "Понедельник, 23 июня · 4 приёма сегодня, 2 снимка в очереди анализа")),
+        React.createElement("h1", { style: { fontSize: 28, fontFamily: "var(--font-display)", letterSpacing: "-.02em" } }, hello + ", " + uname),
+        React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, today.charAt(0).toUpperCase() + today.slice(1) + " · " + schedule.length + " приёмов сегодня" + (bookingsN ? " · " + bookingsN + " новых заявок" : ""))),
       React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 10 } },
         React.createElement("button", { className: "btn-app gho", onClick: () => ctx.setView("assistant") }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Спросить ИИ"),
         React.createElement("button", { className: "btn-app pri", onClick: () => ctx.setView("patients") }, React.createElement(Icon, { name: "plus", size: 16 }), "Новый анализ"))),
@@ -37,7 +41,7 @@ function Dashboard({ ctx }) {
     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, marginTop: 20, alignItems: "start" } },
       React.createElement("div", { className: "card" },
         React.createElement(CardHead, { title: "Расписание на сегодня", icon: "calendar",
-          right: React.createElement("button", { className: "btn-app gho sm" }, "Весь день") }),
+          right: React.createElement("button", { className: "btn-app gho sm", onClick: () => ctx.setView("calendar") }, "Весь день") }),
         React.createElement("div", null, schedule.map((a, i) =>
           React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < schedule.length - 1 ? "1px solid var(--line)" : "none" } },
             React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", width: 52, color: "var(--ink-2)" } }, a.t),
@@ -46,7 +50,7 @@ function Dashboard({ ctx }) {
               React.createElement("div", { style: { fontWeight: 600, fontSize: 14.5 } }, a.n),
               React.createElement("div", { style: { fontSize: 13, color: "var(--ink-3)" } }, a.w)),
             a.st ? React.createElement(Tag, { c: "#18b27a", tint: "#E2F6EE" }, a.st) :
-              React.createElement("button", { className: "btn-app gho sm", onClick: () => { ctx.openPatient(PATIENTS.find(p => p.name === a.n).id); } }, "Открыть")))) ),
+              React.createElement("button", { className: "btn-app gho sm", onClick: () => { if (a.pid && PATIENTS.find(p => p.id === a.pid)) ctx.openPatient(a.pid); else ctx.setView("calendar"); } }, "Открыть")))) ),
 
       React.createElement("div", { className: "card", style: { overflow: "hidden" } },
         React.createElement(CardHead, { title: "Очередь анализа ИИ", icon: "sparkle" }),
