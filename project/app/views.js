@@ -464,6 +464,25 @@ function Analysis({ ctx }) {
     setTimeout(() => { setScanning(false); setShowDet(true); ctx.toast("Повторный анализ: найдено " + findings.length + " находки"); }, 2100);
   }
   function resetView() { setZoom(1); setContrast(1); setInvert(false); setPan({ x: 50, y: 50 }); }
+  function reportData() {
+    const mk = getMarketing();
+    const withInfo = findings.map(f => Object.assign({}, f, { info: findingInfo(f) }));
+    const planState = getPlan(patient.id);
+    const planItems = (planState.status !== "draft" && planState.items && planState.items.length)
+      ? planState.items
+      : withInfo.filter(f => f.info.price > 0).map(f => f.info);
+    return {
+      patient, findings: withInfo, img: img || null, planItems,
+      upsells: pickUpsells(findings, mk.upsells), marketing: mk,
+      doctor: (RadixStore.get("user", null) || { name: "Алексей Петров" }).name
+    };
+  }
+  function openPatientReport() {
+    const d = reportData();
+    d.kind = "patient"; d.mode = "демо-тексты";
+    if (RadixReport.open(d)) ctx.toast("Отчёт пациента открыт — покажите на экране или скачайте PDF");
+    else ctx.toast("Браузер заблокировал окно — разрешите всплывающие окна");
+  }
   function toggleDict() {
     if (recRef.current) { recRef.current.stop(); return; } // остановка — обработается в onend
     const rec = new SR();
@@ -540,6 +559,7 @@ function Analysis({ ctx }) {
         React.createElement("button", { className: "btn-app pri", onClick: () => aiReport("doc"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "bolt", size: 16 }), aiRep && aiRep.loading ? "Генерация…" : "AI-заключение"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("patient"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chat", size: 16 }), "Объяснить пациенту"),
         React.createElement("button", { className: "btn-app gho", onClick: () => aiReport("second"), disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "shield", size: 16 }), "Второе мнение"),
+        React.createElement("button", { className: "btn-app pri", onClick: openPatientReport, style: { background: "var(--good)" } }, React.createElement(Icon, { name: "doc", size: 16 }), "Отчёт пациенту"),
         SR ? React.createElement("button", { className: "btn-app " + (dict && dict.on ? "pri" : "gho"), onClick: toggleDict, title: "Голосовая диктовка заключения" },
           React.createElement("span", { style: dict && dict.on ? { width: 9, height: 9, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "pulse 1s infinite" } : { display: "none" } }),
           dict && dict.on ? "Идёт запись…" : "🎤 Диктовка") : null,

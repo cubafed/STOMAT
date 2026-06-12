@@ -466,6 +466,35 @@ function setPlanState(pid, patch) {
   return next;
 }
 
+/* ---------- Допуслуги для отчёта пациента ---------- */
+const UPSELLS = [
+  { id: "hygiene", label: "Профессиональная гигиена", desc: "Снятие налёта и камня ультразвуком + Air Flow. Дыхание свежее, эмаль светлее на 1–2 тона.", price: 4500, match: fs => true },
+  { id: "fluor", label: "Фторирование эмали", desc: "Укрепляет эмаль и останавливает ранний кариес. Всего 15 минут — лучше всего сразу после гигиены.", price: 2200, match: fs => fs.some(f => f.type === "cariesE" || f.type === "caries") },
+  { id: "whitening", label: "Отбеливание ZOOM", desc: "Заметно белее за один визит. Особенно эффектно после лечения и гигиены.", price: 14900, match: fs => fs.some(f => f.type === "tartar" || f.type === "resto") },
+  { id: "veneers", label: "Дизайн улыбки · виниры", desc: "Идеальная форма и цвет передних зубов. Цифровая примерка новой улыбки — бесплатно.", price: 0, match: fs => true },
+  { id: "ortho", label: "Элайнеры · 3D-диагностика", desc: "Незаметное исправление прикуса. 3D-план перемещения зубов за 30 минут.", price: 1900, match: fs => true },
+  { id: "implant", label: "Имплантация · консультация", desc: "Восстановление зуба под ключ: КТ-диагностика и персональный план в один визит.", price: 0, match: fs => fs.some(f => f.type === "periap") }
+];
+function pickUpsells(findings, enabledMap) {
+  return UPSELLS.filter(u => (!enabledMap || enabledMap[u.id] !== false) && u.match(findings)).slice(0, 3);
+}
+
+/* ---------- Маркетинг клиники для отчётов (настраивается в Настройках) ---------- */
+const MARKETING_DEFAULTS = {
+  discount: 10, days: 14,
+  bonusText: "При оплате всего плана — профессиональная гигиена в подарок",
+  phone: "+7 495 120-45-67", address: "Москва, Цветной бульвар, 15",
+  mech: { deadline: true, delay: true, bonus: true },
+  upsells: { hygiene: true, fluor: true, whitening: true, veneers: true, ortho: true, implant: true }
+};
+function getMarketing() {
+  const saved = RadixStore.get("marketing", {});
+  const m = Object.assign({}, MARKETING_DEFAULTS, saved);
+  m.mech = Object.assign({}, MARKETING_DEFAULTS.mech, saved.mech || {});
+  m.upsells = Object.assign({}, MARKETING_DEFAULTS.upsells, saved.upsells || {});
+  return m;
+}
+
 /* ---------- Счётчик заключений (ключи rdx_reports_*, тяжёлые rdx_img_* не читаем) ---------- */
 function countReports() {
   let n = 0;
@@ -480,4 +509,4 @@ function countReports() {
   return n;
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS });
