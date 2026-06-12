@@ -404,6 +404,45 @@ function PriceCard({ ctx }) {
         React.createElement("button", { className: "btn-app gho", onClick: reset }, "Сбросить"))));
 }
 
+function MarketingCard({ ctx }) {
+  const [m, setM] = useState(() => getMarketing());
+  const inp = { width: "100%", padding: "10px 13px", border: "1px solid var(--line)", borderRadius: 11, fontSize: 14, fontFamily: "inherit", outline: "none", background: "#fff", color: "var(--ink)" };
+  const lbl = { display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)", marginBottom: 5 };
+  function save() {
+    const clean = Object.assign({}, m, { discount: Math.max(0, Math.min(50, Math.round(+m.discount || 0))), days: Math.max(1, Math.min(90, Math.round(+m.days || 14))) });
+    RadixStore.set("marketing", clean); setM(clean);
+    ctx.toast("Маркетинг сохранён — новые отчёты используют эти настройки");
+  }
+  function Toggle({ on, onClick, children }) {
+    return React.createElement("button", { onClick, style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 13px", borderRadius: 999, fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", border: "1.5px solid " + (on ? "var(--primary)" : "var(--line)"), background: on ? "var(--primary-tint)" : "#fff", color: on ? "var(--primary-700)" : "var(--ink-3)" } },
+      React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: on ? "var(--good)" : "var(--ink-4)" } }), children);
+  }
+  const MECH = [["deadline", "Скидка с дедлайном"], ["delay", "График «цена откладывания»"], ["bonus", "Бонус-пакет"]];
+  return React.createElement("div", { className: "card", style: { marginBottom: 18 } },
+    React.createElement(CardHead, { title: "Маркетинг в отчётах пациентов", icon: "chart" }),
+    React.createElement("div", { className: "card-pad" },
+      React.createElement("p", { style: { fontSize: 13, color: "var(--ink-3)", marginBottom: 14 } }, "Эти механики встраиваются в персональный отчёт пациента. Настройте под акции вашей клиники — выключенные блоки в отчёт не попадают."),
+      React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } },
+        MECH.map(([k, l]) => React.createElement(Toggle, { key: k, on: m.mech[k] !== false, onClick: () => setM({ ...m, mech: { ...m.mech, [k]: m.mech[k] === false } }) }, l))),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 } },
+        React.createElement("div", null, React.createElement("label", { style: lbl }, "Скидка, %"),
+          React.createElement("input", { style: inp, type: "number", min: 0, max: 50, value: m.discount, onChange: e => setM({ ...m, discount: e.target.value }) })),
+        React.createElement("div", null, React.createElement("label", { style: lbl }, "Срок действия, дней"),
+          React.createElement("input", { style: inp, type: "number", min: 1, max: 90, value: m.days, onChange: e => setM({ ...m, days: e.target.value }) }))),
+      React.createElement("div", { style: { marginBottom: 14 } },
+        React.createElement("label", { style: lbl }, "Текст бонуса"),
+        React.createElement("input", { style: inp, value: m.bonusText, onChange: e => setM({ ...m, bonusText: e.target.value }) })),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 } },
+        React.createElement("div", null, React.createElement("label", { style: lbl }, "Телефон клиники"),
+          React.createElement("input", { style: inp, value: m.phone, onChange: e => setM({ ...m, phone: e.target.value }) })),
+        React.createElement("div", null, React.createElement("label", { style: lbl }, "Адрес"),
+          React.createElement("input", { style: inp, value: m.address, onChange: e => setM({ ...m, address: e.target.value }) }))),
+      React.createElement("label", { style: lbl }, "Допуслуги в блоке «Рекомендовано именно вам»"),
+      React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 } },
+        UPSELLS.map(u => React.createElement(Toggle, { key: u.id, on: m.upsells[u.id] !== false, onClick: () => setM({ ...m, upsells: { ...m.upsells, [u.id]: m.upsells[u.id] === false } }) }, u.label))),
+      React.createElement("button", { className: "btn-app pri", onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), "Сохранить маркетинг")));
+}
+
 function DataCard({ ctx }) {
   const fileRef = useRef(null);
   function collect() {
@@ -474,6 +513,7 @@ function Settings({ ctx }) {
             React.createElement("div", { style: { fontWeight: 700, fontSize: 14.5, color: ctx.role === k ? "var(--primary-700)" : "var(--ink)" } }, l),
             React.createElement("div", { style: { fontSize: 12.5, color: "var(--ink-3)", marginTop: 3 } }, s))))),
     React.createElement(PriceCard, { ctx: ctx }),
+    React.createElement(MarketingCard, { ctx: ctx }),
     React.createElement(AISettingsCard, { ctx: ctx }),
     React.createElement(DataCard, { ctx: ctx }),
     React.createElement("div", { className: "card", style: { marginBottom: 18 } },
