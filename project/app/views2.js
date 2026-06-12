@@ -93,15 +93,37 @@ function PlanBuilder({ patient, ctx, embedded }) {
       .catch(err => { setAdv(null); ctx.toast("AI недоступен: " + err.message); });
   }
   function toggle(i) { if (!sent) setOn(o => o.map((v, k) => k === i ? !v : v)); }
+  function openPatientReport() {
+    const mk = getMarketing();
+    const withInfo = patient.findings.map(f => Object.assign({}, f, { info: findingInfo(f) }));
+    const saved = RadixStore.get("img_" + patient.id, null);
+    const d = {
+      kind: "patient", patient, findings: withInfo, img: saved ? saved.url : null,
+      planItems: selItems, upsells: pickUpsells(patient.findings, mk.upsells), marketing: mk,
+      doctor: (RadixStore.get("user", null) || { name: "Алексей Петров" }).name
+    };
+    const live = window.RadixAI && RadixAI.hasKey();
+    function show() {
+      if (RadixReport.open(d)) ctx.toast("Отчёт пациента открыт");
+      else ctx.toast("Браузер заблокировал окно — разрешите всплывающие окна");
+    }
+    if (!live) { d.mode = "демо-тексты"; show(); return; }
+    ctx.toast("Готовлю персональный отчёт (" + RadixAI.models().analysis + ")…");
+    RadixAI.patientReportTexts(patient, withInfo, d.upsells)
+      .then(texts => { d.texts = texts; d.mode = RadixAI.models().analysis; show(); })
+      .catch(err => { d.mode = "демо-тексты (AI: " + err.message + ")"; show(); });
+  }
 
   // кнопки нижней панели по статусу
   let actions;
   if (plan.status === "draft") actions = [
+    React.createElement("button", { key: "r", className: "btn-app gho", style: { color: "var(--good)" }, onClick: openPatientReport, disabled: !selItems.length }, React.createElement(Icon, { name: "doc", size: 16 }), "Отчёт пациенту"),
     React.createElement("button", { key: "a", className: "btn-app gho", onClick: aiAdvice, disabled: (adv && adv.loading) || !items.length }, React.createElement(Icon, { name: "bolt", size: 16 }), adv && adv.loading ? "Думаю…" : "Приоритизация AI"),
     React.createElement("button", { key: "m", className: "btn-app gho", onClick: aiMessage, disabled: (pmsg && pmsg.loading) || !selItems.length }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Сообщение пациенту"),
     React.createElement("button", { key: "s", className: "btn-app pri", disabled: !selItems.length, onClick: sendPlan }, React.createElement(Icon, { name: "send", size: 16 }), "Отправить пациенту")
   ];
   else if (plan.status === "sent") actions = [
+    React.createElement("button", { key: "r", className: "btn-app gho", style: { color: "var(--good)" }, onClick: openPatientReport }, React.createElement(Icon, { name: "doc", size: 16 }), "Отчёт пациенту"),
     React.createElement("button", { key: "m", className: "btn-app gho", onClick: aiMessage, disabled: pmsg && pmsg.loading }, React.createElement(Icon, { name: "chat", size: 16 }), pmsg && pmsg.loading ? "Пишу…" : "Напомнить пациенту"),
     React.createElement("button", { key: "d", className: "btn-app gho", style: { color: "var(--danger)" }, onClick: declinePlan }, React.createElement(Icon, { name: "x", size: 16 }), "Отклонил"),
     React.createElement("button", { key: "ok", className: "btn-app pri", onClick: acceptPlan }, React.createElement(Icon, { name: "check", size: 16 }), "Пациент принял")

@@ -572,11 +572,13 @@ function Analysis({ ctx }) {
           React.createElement("span", { style: dict && dict.on ? { width: 9, height: 9, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "pulse 1s infinite" } : { display: "none" } }),
           dict && dict.on ? "Идёт запись…" : "🎤 Диктовка") : null,
         React.createElement("button", { className: "btn-app gho", onClick: () => {
-          const text = aiRep && aiRep.text ? aiRep.text : localReport("doc");
-          const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
-          if (RadixPrint.open({ title: "Заключение по рентгенологическому исследованию", patient: patient.name, doctor, bodyText: text })) ctx.toast("Бланк открыт — печать или сохранение в PDF");
-          else ctx.toast("Браузер заблокировал окно печати — разрешите всплывающие окна");
-        } }, React.createElement(Icon, { name: "print", size: 16 }), "Экспорт"))),
+          const d = reportData();
+          d.kind = "doctor";
+          d.clinicalText = aiRep && aiRep.text && aiRep.kind !== "patient" ? aiRep.text : localReport("doc");
+          d.mode = aiRep && aiRep.mode ? aiRep.mode : "демо";
+          if (RadixReport.open(d)) ctx.toast("Клинический отчёт открыт — печать или сохранение в PDF");
+          else ctx.toast("Браузер заблокировал окно — разрешите всплывающие окна");
+        } }, React.createElement(Icon, { name: "print", size: 16 }), "Отчёт врача"))),
 
     // очередь мульти-анализа
     queue.length > 1 ? React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } },
