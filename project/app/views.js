@@ -479,9 +479,17 @@ function Analysis({ ctx }) {
   }
   function openPatientReport() {
     const d = reportData();
-    d.kind = "patient"; d.mode = "демо-тексты";
-    if (RadixReport.open(d)) ctx.toast("Отчёт пациента открыт — покажите на экране или скачайте PDF");
-    else ctx.toast("Браузер заблокировал окно — разрешите всплывающие окна");
+    d.kind = "patient";
+    const live = window.RadixAI && RadixAI.hasKey();
+    function show() {
+      if (RadixReport.open(d)) ctx.toast("Отчёт пациента открыт — покажите на экране или скачайте PDF");
+      else ctx.toast("Браузер заблокировал окно — разрешите всплывающие окна");
+    }
+    if (!live) { d.mode = "демо-тексты"; show(); return; }
+    ctx.toast("Готовлю персональный отчёт (" + RadixAI.models().analysis + ")…");
+    RadixAI.patientReportTexts(aip, d.findings, d.upsells)
+      .then(texts => { d.texts = texts; d.mode = RadixAI.models().analysis; show(); })
+      .catch(err => { d.mode = "демо-тексты (AI: " + err.message + ")"; show(); });
   }
   function toggleDict() {
     if (recRef.current) { recRef.current.stop(); return; } // остановка — обработается в onend

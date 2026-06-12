@@ -198,5 +198,22 @@
     ], 220);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice };
+  /* Тексты для отчёта пациента (модель анализа — GPT-5.5), один вызов → JSON */
+  function patientReportTexts(patient, findings, upsells) {
+    var ups = upsells.map(function (u) { return u.id + " = " + u.label + " (" + u.desc + ")"; }).join("\n");
+    return complete(models().analysis, [
+      { role: "system", content: SYS + " Сейчас ты пишешь тексты для красивого отчёта ПАЦИЕНТУ: тёплый заботливый тон, никакого медицинского жаргона, без запугивания, но с мягкой мотивацией не откладывать." },
+      { role: "user", content: "Пациент: " + patient.name + ".\nНаходки на снимке:\n" + findingsBrief(patient) +
+        "\n\nРекомендуемые клиникой дополнительные услуги:\n" + ups +
+        "\n\nВерни СТРОГО JSON без пояснений:\n{\"greeting\": \"тёплое вступление 2-3 предложения с именем\", \"findings\": [{\"tooth\": \"номер\", \"text\": \"объяснение находки простыми словами, 1-2 предложения\"}], \"whyNow\": \"почему лечить сейчас выгоднее, 2-3 предложения, мягко\", \"upsell\": {\"id услуги\": \"персональная подводка, почему именно этому пациенту это подойдёт, 1-2 предложения\"}}" }
+    ], 1100).then(function (t) {
+      var m = t.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error("Модель не вернула JSON");
+      var j = JSON.parse(m[0]);
+      if (!j.greeting || !j.findings) throw new Error("Неполный ответ модели");
+      return j;
+    });
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts };
 })();
