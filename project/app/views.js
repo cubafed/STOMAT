@@ -345,6 +345,16 @@ function Analysis({ ctx }) {
   const saved = RadixStore.get("img_" + ctx.patientId, null);
   const [queue, setQueue] = useState([]); // очередь мульти-загрузки
   const [dict, setDict] = useState(null); // { on, text } — голосовая диктовка
+  const [measure, setMeasure] = useState(false);     // режим линейки
+  const [mLine, setMLine] = useState(null);          // {x1,y1,x2,y2} в % + точка a
+  const risk = (window.RadixAI && RadixAI.riskScore) ? RadixAI.riskScore({ findings }) : null;
+  function onFilmClick(e) {
+    if (!measure) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 100, y = ((e.clientY - r.top) / r.height) * 100;
+    setMLine(prev => (!prev || prev.x2 != null) ? { x1: x, y1: y, x2: null, y2: null } : { x1: prev.x1, y1: prev.y1, x2: x, y2: y });
+  }
+  const mPct = mLine && mLine.x2 != null ? Math.round(Math.hypot(mLine.x2 - mLine.x1, mLine.y2 - mLine.y1) * 10) / 10 : null;
   const recRef = useRef(null);
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const [img, setImg] = useState(saved ? saved.url : null);           // dataURL загруженного снимка
@@ -598,6 +608,17 @@ function Analysis({ ctx }) {
         ? React.createElement("button", { className: "btn-app gho sm", onClick: aiDynamics, disabled: aiRep && aiRep.loading }, React.createElement(Icon, { name: "chart", size: 14 }), "Динамика (AI)")
         : null) : null,
 
+    // риск-балл по пациенту
+    risk && findings.length ? React.createElement("div", { style: { display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" } },
+      [["Общий риск", risk.overall, risk.bandOverall], ["Кариес-риск", risk.caries, risk.bandCaries], ["Пародонт-риск", risk.perio, risk.bandPerio]].map((r, i) =>
+        React.createElement("div", { key: i, style: { flex: "1 1 160px", border: "1px solid var(--line)", borderRadius: 14, padding: "12px 16px", background: "#fff" } },
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-3)", fontWeight: 600 } }, r[0]),
+          React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, margin: "4px 0 7px" } },
+            React.createElement("span", { style: { fontSize: 26, fontWeight: 800, fontFamily: "var(--font-display)", color: r[2].c } }, r[1]),
+            React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: r[2].c } }, r[2].t)),
+          React.createElement("div", { style: { height: 6, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },
+            React.createElement("div", { style: { width: r[1] + "%", height: "100%", background: r[2].c, borderRadius: 99 } })))) ) : null,
+
     // progress strip
     React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
       [["Подтверждено", accepted, "var(--good)", "var(--good-tint)"], ["На проверке", pending, "var(--warn)", "var(--warn-tint)"], ["Отклонено", rejected, "var(--ink-3)", "var(--bg-soft)"]].map((s, i) =>
@@ -615,14 +636,21 @@ function Analysis({ ctx }) {
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),
           React.createElement("button", { className: "rv-tool", title: "Уменьшить", onClick: () => setZoom(z => Math.max(1, +(z - .25).toFixed(2))) }, React.createElement(Icon, { name: "ruler", size: 16 })),
           React.createElement("button", { className: "rv-tool", title: "Увеличить", onClick: () => setZoom(z => Math.min(2.5, +(z + .25).toFixed(2))) }, React.createElement(Icon, { name: "zoom", size: 16 })),
-          React.createElement("button", { className: "rv-tool", title: "Сбросить вид", onClick: resetView }, React.createElement(Icon, { name: "history", size: 16 }))),
+          React.createElement("button", { className: "rv-tool" + (measure ? " on" : ""), title: "Линейка (клик — две точки)", onClick: () => { setMeasure(m => !m); setMLine(null); } }, React.createElement(Icon, { name: "ruler", size: 16 })),
+          React.createElement("button", { className: "rv-tool", title: "Сбросить вид", onClick: () => { resetView(); setMeasure(false); setMLine(null); } }, React.createElement(Icon, { name: "history", size: 16 }))),
         compare
           ? React.createElement(BeforeAfter, { before: Object.assign({}, patient.arch), after: Object.assign({}, patient.arch, { decayAt: [], restoreAt: patient.arch.decayAt[0] != null ? patient.arch.decayAt[0] : patient.arch.restoreAt }), tagBefore: "До · март", tagAfter: "После · сентябрь" })
-          : React.createElement("div", { className: "rv-film", onMouseMove: e => { if (zoom > 1) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
+          : React.createElement("div", { className: "rv-film", style: measure ? { cursor: "crosshair" } : null, onClick: onFilmClick, onMouseMove: e => { if (zoom > 1 && !measure) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
               React.createElement("div", { className: "rv-film-inner", style: filmStyle },
                 img
                   ? React.createElement("img", { src: img, alt: "Снимок", style: { width: "100%", height: "100%", objectFit: "cover", display: "block" } })
                   : React.createElement(Arch, patient.arch)),
+              mLine ? React.createElement("svg", { style: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 7 }, viewBox: "0 0 100 100", preserveAspectRatio: "none" },
+                mLine.x2 != null ? React.createElement("line", { x1: mLine.x1, y1: mLine.y1, x2: mLine.x2, y2: mLine.y2, stroke: "#11AEC8", strokeWidth: 0.6, strokeDasharray: "1.5 1" }) : null,
+                React.createElement("circle", { cx: mLine.x1, cy: mLine.y1, r: 1, fill: "#11AEC8" }),
+                mLine.x2 != null ? React.createElement("circle", { cx: mLine.x2, cy: mLine.y2, r: 1, fill: "#11AEC8" }) : null) : null,
+              measure ? React.createElement("div", { style: { position: "absolute", top: 10, left: 10, zIndex: 8, background: "rgba(10,15,31,.7)", color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 8 } },
+                mPct != null ? "Длина: " + mPct + "% кадра" : (mLine ? "Кликните вторую точку" : "Кликните первую точку")) : null,
               scanning ? React.createElement("div", { className: "scanline" }) : null,
               showDet && !scanning ? React.createElement("div", { className: "det-layer" }, visibleDets.map((f) => {
                 const oi = findings.indexOf(f); const info = findingInfo(f);
@@ -651,7 +679,9 @@ function Analysis({ ctx }) {
           return React.createElement("div", { key: i, className: "finding" + (d === "rej" ? " dim" : "") + (hot === i ? " hot" : ""), onMouseEnter: () => setHot(i), onMouseLeave: () => setHot(-1) },
             React.createElement("div", { className: "f-ic", style: { background: info.tint, color: info.c } }, React.createElement(Icon, { name: "tooth", size: 17 })),
             React.createElement("div", { style: { flex: 1, minWidth: 0 } },
-              React.createElement("div", { className: "f-t" }, info.label),
+              React.createElement("div", { className: "f-t", style: { display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" } }, info.label,
+                (function () { const s = severityInfo(f.severity); return s ? React.createElement("span", { style: { fontSize: 10.5, fontWeight: 700, color: s.c, background: s.tint, padding: "1px 7px", borderRadius: 999 } }, s.label) : null; })(),
+                f.mm ? React.createElement("span", { style: { fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", background: "var(--bg-soft)", padding: "1px 7px", borderRadius: 999 } }, f.mm + " мм") : null),
               React.createElement("div", { className: "f-s" }, "Зуб " + info.tooth + " · " + info.loc),
               React.createElement("div", { className: "fconf" }, React.createElement("i", { style: { width: f.pc + "%", background: info.c } }))),
             React.createElement("div", { className: "f-act" },

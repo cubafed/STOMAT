@@ -95,12 +95,24 @@ const PALS = ["#FF5A36", "#18A06E", "#E8941F", "#7C5CFF", "#11AEC8", "#2F4BF0"];
 function initials(name) { return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase(); }
 
 const FIND_LIB = {
-  caries: { c: "#FF5A36", tint: "#FFE6DD", label: "Кариес дентина", sev: "Высокий", price: 6500 },
-  cariesE: { c: "#FF5A36", tint: "#FFE6DD", label: "Кариес эмали", sev: "Средний", price: 4800 },
-  tartar: { c: "#E8941F", tint: "#FBEFD9", label: "Зубной камень", sev: "Средний", price: 4200 },
-  periap: { c: "#7C5CFF", tint: "#EFEAFF", label: "Периапикальный очаг", sev: "Высокий", price: 12000 },
-  resto: { c: "#11AEC8", tint: "#DBF4F8", label: "Реставрация", sev: "Норма", price: 0 }
+  caries: { c: "#FF5A36", tint: "#FFE6DD", label: "Кариес дентина", sev: "Высокий", price: 6500, group: "caries" },
+  cariesE: { c: "#FF5A36", tint: "#FFE6DD", label: "Кариес эмали", sev: "Средний", price: 4800, group: "caries" },
+  tartar: { c: "#E8941F", tint: "#FBEFD9", label: "Зубной камень", sev: "Средний", price: 4200, group: "perio" },
+  periap: { c: "#7C5CFF", tint: "#EFEAFF", label: "Периапикальный очаг", sev: "Высокий", price: 12000, group: "endo" },
+  periodontitis: { c: "#C0392B", tint: "#F8E2DE", label: "Периодонтит", sev: "Высокий", price: 9000, group: "perio" },
+  resorption: { c: "#D81B60", tint: "#FBE3EC", label: "Резорбция корня", sev: "Высокий", price: 11000, group: "endo" },
+  cyst: { c: "#8E44AD", tint: "#F0E7F7", label: "Киста / гранулёма", sev: "Высокий", price: 14000, group: "endo" },
+  crowding: { c: "#2E86DE", tint: "#E2EEFB", label: "Скученность зубов", sev: "Средний", price: 1900, group: "ortho" },
+  impacted: { c: "#16A085", tint: "#DEF3EE", label: "Ретенция зуба мудрости", sev: "Средний", price: 8000, group: "surgery" },
+  resto: { c: "#11AEC8", tint: "#DBF4F8", label: "Реставрация", sev: "Норма", price: 0, group: "ok" }
 };
+// Стадии тяжести (ICDAS-подобно): 1 начальная · 2 умеренная · 3 выраженная
+const SEVERITY = {
+  1: { label: "Начальная", c: "#18A06E", tint: "#E1F4EC", risk: 1 },
+  2: { label: "Умеренная", c: "#E8941F", tint: "#FBEFD9", risk: 2 },
+  3: { label: "Выраженная", c: "#ED4422", tint: "#FCE6E2", risk: 3 }
+};
+function severityInfo(s) { return SEVERITY[s] || null; }
 
 const PATIENTS = [
   {
@@ -509,4 +521,4 @@ function countReports() {
   return n;
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo });

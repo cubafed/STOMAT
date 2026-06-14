@@ -75,7 +75,7 @@
 
   /* Vision-анализ загруженного снимка (модель анализа — GPT-5.5).
      Возвращает массив находок в формате приложения. */
-  var FIND_TYPES = ["caries", "cariesE", "tartar", "periap", "resto"];
+  var FIND_TYPES = ["caries", "cariesE", "tartar", "periap", "periodontitis", "resorption", "cyst", "crowding", "impacted", "resto"];
   function parseFindings(text) {
     var m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("Модель не вернула JSON");
@@ -90,6 +90,8 @@
         tooth: f.tooth != null ? f.tooth : "—",
         loc: f.loc || "",
         pc: Math.max(50, Math.min(99, Math.round(+f.pc || 75))),
+        severity: [1, 2, 3].indexOf(+f.severity) > -1 ? +f.severity : 2,
+        mm: f.mm != null ? Math.round(+f.mm * 10) / 10 : null,
         box: { x: cl(b.x, 88), y: cl(b.y, 84), w: Math.max(4, cl(b.w, 30)), h: Math.max(4, cl(b.h, 30)) }
       };
     });
@@ -99,7 +101,7 @@
       { role: "system", content: SYS },
       {
         role: "user", content: [
-          { type: "text", text: "Проанализируй этот стоматологический рентгеновский снимок. Найди патологии и верни СТРОГО JSON без пояснений:\n{\"findings\":[{\"type\":\"caries|cariesE|tartar|periap|resto\",\"tooth\":\"номер зуба по FDI или описание\",\"loc\":\"локализация по-русски\",\"pc\":число 50-99 (уверенность),\"box\":{\"x\":0-100,\"y\":0-100,\"w\":4-30,\"h\":4-30}}]}\nbox — рамка находки в процентах от размеров изображения (x,y — левый верхний угол). Типы: caries — кариес дентина, cariesE — кариес эмали, tartar — зубной камень, periap — периапикальный очаг, resto — реставрация/пломба. Если патологий нет — пустой массив." },
+          { type: "text", text: "Проанализируй этот стоматологический рентгеновский снимок. Найди патологии и верни СТРОГО JSON без пояснений:\n{\"findings\":[{\"type\":\"caries|cariesE|tartar|periap|periodontitis|resorption|cyst|crowding|impacted|resto\",\"tooth\":\"номер зуба по FDI или описание\",\"loc\":\"локализация по-русски\",\"pc\":число 50-99 (уверенность),\"severity\":1|2|3 (1 начальная, 2 умеренная, 3 выраженная),\"mm\":размер очага в мм (число, если применимо),\"box\":{\"x\":0-100,\"y\":0-100,\"w\":4-30,\"h\":4-30}}]}\nbox — рамка в процентах от размеров изображения (x,y — левый верхний угол). Типы: caries — кариес дентина, cariesE — кариес эмали, tartar — камень, periap — периапикальный очаг, periodontitis — периодонтит, resorption — резорбция корня, cyst — киста/гранулёма, crowding — скученность, impacted — ретенция зуба мудрости, resto — реставрация. Если патологий нет — пустой массив." },
           { type: "image_url", image_url: { url: dataUrl } }
         ]
       }
@@ -215,5 +217,23 @@
     });
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts };
+  /* Сводный риск-балл по пациенту (детерминированная эвристика, без сети) */
+  function riskScore(patient) {
+    var fs = patient.findings || [];
+    var cariesW = { caries: 22, cariesE: 12, resorption: 18, cyst: 16, periap: 14 };
+    var perioW = { tartar: 16, periodontitis: 26 };
+    var caries = 0, perio = 0;
+    fs.forEach(function (f) {
+      var sev = f.severity || 2, k = (f.pc || 75) / 100;
+      if (cariesW[f.type]) caries += cariesW[f.type] * (sev / 2) * k;
+      if (perioW[f.type]) perio += perioW[f.type] * (sev / 2) * k;
+    });
+    caries = Math.min(100, Math.round(caries));
+    perio = Math.min(100, Math.round(perio));
+    var overall = Math.min(100, Math.round(caries * 0.6 + perio * 0.55));
+    function band(v) { return v < 25 ? { t: "низкий", c: "#18A06E" } : v < 55 ? { t: "умеренный", c: "#E8941F" } : { t: "высокий", c: "#ED4422" }; }
+    return { caries: caries, perio: perio, overall: overall, bandCaries: band(caries), bandPerio: band(perio), bandOverall: band(overall) };
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore };
 })();
