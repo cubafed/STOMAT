@@ -227,11 +227,13 @@ function App() {
     { k: "analysis", ic: "scan", l: "Анализ снимков" },
     { k: "assistant", ic: "chat", l: "AI-консультант" },
     { k: "plan", ic: "doc", l: "Планы лечения" },
+    { k: "perio", ic: "shield", l: "Пародонт. карта" },
     { k: "analytics", ic: "chart", l: "Аналитика" },
     { sec: "Команда" },
     { k: "community", ic: "users", l: "Сообщество" },
     { k: "notifications", ic: "bell", l: "Уведомления", soft: notifCount },
     { k: "billing", ic: "cash", l: "Биллинг" },
+    { k: "inventory", ic: "layers", l: "Склад" },
     { k: "settings", ic: "settings", l: "Настройки" }
   ];
 
@@ -247,6 +249,8 @@ function App() {
     community: ["Сообщество", "Лента клинических случаев"],
     notifications: ["Уведомления", "Центр оповещений"],
     billing: ["Биллинг", "Подписка и оплата"],
+    perio: ["Пародонтальная карта", "Глубина карманов и кровоточивость"],
+    inventory: ["Склад", "Материалы и расходники клиники"],
     settings: ["Настройки", "Интеграции и параметры"]
   };
 
@@ -263,6 +267,8 @@ function App() {
   else if (view === "community") main = React.createElement(Community, { ctx });
   else if (view === "notifications") main = React.createElement(Notifications, { ctx });
   else if (view === "billing") main = React.createElement(Billing, { ctx });
+  else if (view === "perio") main = React.createElement(Perio, { ctx });
+  else if (view === "inventory") main = React.createElement(Inventory, { ctx });
   else if (view === "settings") main = React.createElement(Settings, { ctx });
 
   const isChat = view === "assistant";
