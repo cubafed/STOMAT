@@ -347,7 +347,6 @@ function Analysis({ ctx }) {
   const [dict, setDict] = useState(null); // { on, text } — голосовая диктовка
   const [measure, setMeasure] = useState(false);     // режим линейки
   const [mLine, setMLine] = useState(null);          // {x1,y1,x2,y2} в % + точка a
-  const risk = (window.RadixAI && RadixAI.riskScore) ? RadixAI.riskScore({ findings }) : null;
   function onFilmClick(e) {
     if (!measure) return;
     const r = e.currentTarget.getBoundingClientRect();
@@ -369,6 +368,7 @@ function Analysis({ ctx }) {
   if (!patient) return null;
 
   const findings = imgFinds || patient.findings;
+  const risk = (window.RadixAI && RadixAI.riskScore) ? RadixAI.riskScore({ findings }) : null;
   const aip = imgFinds ? { name: patient.name, findings } : patient; // контекст для AI-вызовов
 
   function decide(i, v) {
