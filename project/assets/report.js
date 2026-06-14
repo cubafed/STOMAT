@@ -243,7 +243,8 @@
         '<table style="margin-top:20px"><tr><th>Что делаем</th><th class="r">Стоимость</th></tr>' +
         planItems.map(function (it) { return '<tr><td><b>' + esc(it.label) + '</b> <span class="muted">· зуб ' + esc(it.tooth) + '</span></td><td class="r">' + rub(it.price) + '</td></tr>'; }).join("") +
         '<tr class="tot"><td>Весь план под ключ</td><td class="r">' + rub(total) + '</td></tr></table>' +
-        '<div class="muted" style="margin-top:8px">' + visits.length + ' ' + plural(visits.length, "визит", "визита", "визитов") + ' · можно разбить оплату по визитам</div></div>';
+        '<div class="muted" style="margin-top:14px;margin-bottom:6px;font-weight:700;color:#14110C">Можно платить частями:</div>' + installmentHTML(total) +
+        '<div class="muted" style="margin-top:8px">' + visits.length + ' ' + plural(visits.length, "визит", "визита", "визитов") + ' · рассрочка без переплаты</div></div>';
     }
 
     // почему сейчас
@@ -304,12 +305,14 @@
       '<div class="muted">' + ruDate(new Date()) + ' · врач: ' + esc(d.doctor || "—") + (d.img ? ' · загруженный снимок · vision-анализ' : ' · bitewing · архивный снимок') + '</div></div>' +
       '<div style="text-align:right" class="muted">Находок: <b style="color:#14110C;font-size:18px;font-family:Unbounded,sans-serif">' + findings.length + '</b></div></div></div>';
     h += '<div class="card"><h2><span class="n">1</span>Снимок с разметкой</h2>' + xrayHTML(d.img, findings) + '</div>';
-    h += '<div class="card"><h2><span class="n">2</span>Находки</h2><table><tr><th>Зуб</th><th>Находка</th><th>Локализация</th><th class="r">Уверенность ИИ</th></tr>' +
+    var SEVL = { 1: "начальная", 2: "умеренная", 3: "выраженная" };
+  h += '<div class="card"><h2><span class="n">2</span>Находки</h2><table><tr><th>Зуб</th><th>Находка</th><th>Стадия</th><th>Размер</th><th>Локализация</th><th class="r">Уверенность ИИ</th></tr>' +
       findings.map(function (f) {
         var info = f.info || {};
-        return '<tr><td><b>' + esc(f.tooth) + '</b></td><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + (info.c || "#FF5A36") + ';margin-right:7px"></span>' + esc(info.label || f.type) + '</td><td class="muted">' + esc(f.loc || "—") + '</td><td class="r"><b>' + f.pc + '%</b></td></tr>';
+        return '<tr><td><b>' + esc(f.tooth) + '</b></td><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + (info.c || "#FF5A36") + ';margin-right:7px"></span>' + esc(info.label || f.type) + '</td><td class="muted">' + esc(SEVL[f.severity] || "—") + '</td><td class="muted">' + (f.mm ? f.mm + " мм" : "—") + '</td><td class="muted">' + esc(f.loc || "—") + '</td><td class="r"><b>' + f.pc + '%</b></td></tr>';
       }).join("") + '</table></div>';
-    if (d.clinicalText) h += '<div class="card"><h2><span class="n">3</span>Заключение</h2><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.65">' + esc(d.clinicalText) + '</div></div>';
+    if (d.risk) h += '<div class="card"><h2><span class="n">3</span>Оценка риска</h2>' + riskBlockHTML(d.risk) + '</div>';
+    if (d.clinicalText) h += '<div class="card"><h2><span class="n">' + (d.risk ? 4 : 3) + '</span>Заключение</h2><div style="white-space:pre-wrap;font-size:13.5px;line-height:1.65">' + esc(d.clinicalText) + '</div></div>';
     if (planItems.length) {
       h += '<div class="card"><h2><span class="n">' + (d.clinicalText ? 4 : 3) + '</span>План лечения</h2><table><tr><th>Этап</th><th class="r">Стоимость</th></tr>' +
         planItems.map(function (it) { return '<tr><td><b>' + esc(it.label) + '</b> <span class="muted">· зуб ' + esc(it.tooth) + ' · приоритет ' + esc(it.sev) + '</span></td><td class="r">' + rub(it.price) + '</td></tr>'; }).join("") +
@@ -320,6 +323,28 @@
     return shell("Клинический отчёт — " + d.patient.name, h, null);
   }
 
+  function riskBlockHTML(risk) {
+    if (!risk) return "";
+    var items = [["Общий риск", risk.overall, risk.bandOverall], ["Кариес", risk.caries, risk.bandCaries], ["Пародонт", risk.perio, risk.bandPerio]];
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">' + items.map(function (r) {
+      return '<div style="border:1px solid #ECE7DB;border-radius:14px;padding:14px;text-align:center">' +
+        '<div class="muted" style="font-size:11.5px">' + r[0] + '</div>' +
+        '<div style="font-family:Unbounded,sans-serif;font-weight:800;font-size:28px;color:' + r[2].c + '">' + r[1] + '</div>' +
+        '<div style="font-size:11.5px;font-weight:700;color:' + r[2].c + '">' + r[2].t + ' риск</div>' +
+        '<div style="height:5px;border-radius:99px;background:#ECE7DB;overflow:hidden;margin-top:7px"><div style="width:' + r[1] + '%;height:100%;background:' + r[2].c + '"></div></div></div>';
+    }).join("") + '</div>';
+  }
+  function installmentHTML(total) {
+    if (!total) return "";
+    var plans = [[3, "3 месяца"], [6, "6 месяцев"], [12, "12 месяцев"]];
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px">' + plans.map(function (p) {
+      var m = Math.ceil(total / p[0] / 100) * 100;
+      return '<div style="border:1.5px solid #ECE7DB;border-radius:14px;padding:15px;text-align:center">' +
+        '<div class="muted" style="font-size:12px">' + p[1] + '</div>' +
+        '<div style="font-family:Unbounded,sans-serif;font-weight:800;font-size:20px;color:#ED4422;margin-top:4px">' + rub(m) + '</div>' +
+        '<div class="muted" style="font-size:11px">в месяц</div></div>';
+    }).join("") + '</div>';
+  }
   function build(d) { return d.kind === "doctor" ? buildDoctor(d) : buildPatient(d); }
   function open(d) {
     try {

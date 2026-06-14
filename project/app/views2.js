@@ -100,6 +100,7 @@ function PlanBuilder({ patient, ctx, embedded }) {
     const d = {
       kind: "patient", patient, findings: withInfo, img: saved ? saved.url : null,
       planItems: selItems, upsells: pickUpsells(patient.findings, mk.upsells), marketing: mk,
+      risk: (window.RadixAI && RadixAI.riskScore) ? RadixAI.riskScore({ findings: patient.findings }) : null,
       doctor: (RadixStore.get("user", null) || { name: "Алексей Петров" }).name
     };
     const live = window.RadixAI && RadixAI.hasKey();

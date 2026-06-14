@@ -484,6 +484,7 @@ function Analysis({ ctx }) {
     return {
       patient, findings: withInfo, img: img || null, planItems,
       upsells: pickUpsells(findings, mk.upsells), marketing: mk,
+      risk: (window.RadixAI && RadixAI.riskScore) ? RadixAI.riskScore({ findings }) : null,
       doctor: (RadixStore.get("user", null) || { name: "Алексей Петров" }).name
     };
   }
