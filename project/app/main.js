@@ -152,6 +152,19 @@ const ROLE_INFO = {
   assist: { l: "Ассистент", sub: "Ассистент врача", hide: ["crm", "billing", "analytics"] }
 };
 
+/* ---------- Индикатор аккаунта / синхронизации ---------- */
+function AccountChip() {
+  const db = window.RadixDB;
+  if (!db || !db.configured()) return null;
+  const st = db.state();
+  if (st.user) {
+    return React.createElement("button", { className: "btn-app gho", title: "Данные синхронизируются с облаком", onClick: () => { db.signOut().then(() => location.reload()); } },
+      React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: "var(--good)" } }), "Синхронизация · выйти");
+  }
+  return React.createElement("a", { className: "btn-app gho", href: "Вход и регистрация.html", title: "Войдите, чтобы данные сохранялись в облаке и были на всех устройствах" },
+    React.createElement(Icon, { name: "shield", size: 15 }), "Войти для синхронизации");
+}
+
 function App() {
   const USER = RadixStore.get("user", null) || { name: "Алексей Петров" };
   const [view, setView] = useState("dashboard");
@@ -313,6 +326,7 @@ function App() {
         React.createElement("div", { className: "theme-toggle" },
           React.createElement("button", { className: !dark ? "on" : "", onClick: () => setDark(false), title: "Светлая" }, React.createElement(Icon, { name: "shield", size: 15 })),
           React.createElement("button", { className: dark ? "on" : "", onClick: () => setDark(true), title: "Тёмная" }, React.createElement(Icon, { name: "sparkle", size: 15 }))),
+        React.createElement(AccountChip, null),
         React.createElement("button", { className: "btn-app gho", onClick: () => ctx.setView("assistant") }, React.createElement(Icon, { name: "sparkle", size: 16 }), "Спросить ИИ"),
         React.createElement("button", { className: "icon-btn", onClick: () => ctx.setView("notifications") }, React.createElement(Icon, { name: "bell", size: 18 }), React.createElement("span", { className: "dot" })),
         React.createElement("a", { className: "icon-btn", href: "Лендинг МВП.html", title: "На сайт" }, React.createElement(Icon, { name: "home", size: 18 }))),
@@ -326,4 +340,10 @@ function App() {
     React.createElement(Toast, { msg: toast.msg, show: toast.show }));
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+// Бутстрап: поднять облако (если настроено) и гидрировать данные клиники,
+// затем рендерить. В локальном режиме init резолвится мгновенно.
+(window.RadixDB ? RadixDB.init() : Promise.resolve())
+  .catch(function () {})
+  .then(function () {
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  });
