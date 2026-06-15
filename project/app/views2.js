@@ -311,40 +311,98 @@ function PaymentsCard({ ctx }) {
 }
 
 /* ---------------- ANALYTICS ---------------- */
+function BarsRow({ items, fmt, color }) {
+  const max = Math.max.apply(null, items.map(i => i.value).concat([1]));
+  return React.createElement("div", { className: "card-pad" }, items.length ? items.map((it, i) =>
+    React.createElement("div", { key: i, style: { marginBottom: 13 } },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 5 } },
+        React.createElement("span", { style: { fontWeight: 600 } }, it.label),
+        React.createElement("span", { style: { color: "var(--ink-3)", fontWeight: 700, fontFamily: "var(--font-display)" } }, fmt(it.value))),
+      React.createElement("div", { style: { height: 10, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },
+        React.createElement("div", { style: { width: Math.max(3, it.value / max * 100) + "%", height: "100%", borderRadius: 99, background: it.color || color || "var(--primary)", transition: "width .6s" } })))) :
+    React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", fontSize: 13.5, padding: "20px 0" } }, "Пока нет данных — появятся после первых оплат"));
+}
+
+function AIForecastCard({ a, ctx }) {
+  const [f, setF] = useState(null);
+  const [busy, setBusy] = useState(false);
+  function run() {
+    setBusy(true);
+    const live = window.RadixAI && RadixAI.hasKey();
+    const lo = Math.round((a.monthRevenue + a.weighted * 0.3) / 1000) * 1000;
+    const hi = Math.round((a.monthRevenue + a.weighted * 0.55 + a.avgCheck * 5) / 1000) * 1000;
+    const demo = "Прогноз на следующий месяц: " + lo.toLocaleString("ru-RU") + "–" + hi.toLocaleString("ru-RU") + " ₽.\n• Основной драйвер — взвешенный пайплайн " + a.weighted.toLocaleString("ru-RU") + " ₽ и конверсия " + a.conv + "%.\n• Поднимите конверсию: быстрее отправляйте планы и напоминания.\n• Средний чек " + a.avgCheck.toLocaleString("ru-RU") + " ₽ — предлагайте профгигиену и эстетику в отчётах.";
+    const run = live ? RadixAI.forecast(a) : new Promise(res => setTimeout(() => res(demo), 700));
+    run.then(text => { setF({ text, mode: live ? RadixAI.models().chat : "демо" }); setBusy(false); })
+      .catch(err => { setBusy(false); ctx.toast("AI недоступен: " + err.message); });
+  }
+  return React.createElement("div", { className: "card", style: { marginTop: 20 } },
+    React.createElement(CardHead, { title: "AI-прогноз выручки", icon: "bolt",
+      right: React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } },
+        f ? React.createElement(Tag, { c: f.mode === "демо" ? "var(--warn)" : "#18b27a", tint: f.mode === "демо" ? "var(--warn-tint)" : "#E2F6EE" }, f.mode) : null,
+        React.createElement("button", { className: "btn-app gho sm", onClick: run, disabled: busy }, busy ? "Считаю…" : f ? "Обновить" : "Сделать прогноз")) }),
+    React.createElement("div", { style: { padding: "16px 20px", whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.65, color: f ? "var(--ink)" : "var(--ink-4)" } },
+      f ? f.text : "Прогноз выручки на месяц по взвешенной воронке и динамике оплат — одной кнопкой."));
+}
+
 function Analytics({ ctx }) {
-  const bars = [
-    { m: "Янв", v: 62 }, { m: "Фев", v: 78 }, { m: "Мар", v: 71 }, { m: "Апр", v: 92 }, { m: "Май", v: 110 }, { m: "Июн", v: 142 }
-  ];
-  const max = 150;
-  const dist = [
-    { l: "Кариес", v: 48, c: "#f0533f" }, { l: "Зубной камень", v: 27, c: "#f0a12e" },
-    { l: "Периапикальные", v: 14, c: "#7c5cff" }, { l: "Реставрации", v: 11, c: "#12b8d6" }
-  ];
+  const a = analyticsData();
+  const fmtR = n => Math.round(n).toLocaleString("ru-RU") + " ₽";
+  const funnelMax = Math.max.apply(null, a.funnel.map(s => s.n).concat([1]));
   return React.createElement("div", { className: "content-pad" },
     React.createElement("h1", { style: { fontSize: 26, fontFamily: "var(--font-display)", marginBottom: 4 } }, "Аналитика"),
-    React.createElement("p", { style: { color: "var(--ink-3)", marginBottom: 22 } }, "Эффективность диагностики и принятия планов по клинике"),
-    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20, alignItems: "start" } },
+    React.createElement("p", { style: { color: "var(--ink-3)", marginBottom: 22 } }, "Финансы, воронка и эффективность ИИ на реальных данных клиники"),
+
+    // верхние метрики
+    React.createElement("div", { className: "stat-grid", style: { marginBottom: 20 } }, [
+      { n: fmtR(a.monthRevenue), l: "Выручка за месяц", c: "#18b27a", bg: "#E2F6EE", ic: "cash" },
+      { n: fmtR(a.weighted), l: "Взвешенный пайплайн", c: "#3B5BFF", bg: "#ECF0FF", ic: "filter" },
+      { n: a.conv + "%", l: "Конверсия лид→лечение", c: "#E8941F", bg: "#FCF0DC", ic: "chart" },
+      { n: fmtR(a.avgCheck), l: "Средний чек", c: "#7c5cff", bg: "#efeaff", ic: "doc" }
+    ].map((s, i) => React.createElement("div", { className: "stat", key: i },
+      React.createElement("div", { className: "s-ic", style: { background: s.bg, color: s.c } }, React.createElement(Icon, { name: s.ic, size: 20 })),
+      React.createElement("div", { className: "s-num", style: { fontSize: 21 } }, s.n), React.createElement("div", { className: "s-lbl" }, s.l)))),
+
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" } },
       React.createElement("div", { className: "card" },
-        React.createElement(CardHead, { title: "Снимков проанализировано", icon: "chart", right: React.createElement(Tag, { c: "#18b27a", tint: "#E2F6EE" }, "+129% за полгода") }),
-        React.createElement("div", { style: { padding: "26px 22px", display: "flex", alignItems: "flex-end", gap: 18, height: 240 } }, bars.map((b, i) =>
-          React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 9, height: "100%", justifyContent: "flex-end" } },
-            React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "var(--ink-2)" } }, b.v),
-            React.createElement("div", { style: { width: "100%", maxWidth: 46, height: (b.v / max * 100) + "%", borderRadius: "10px 10px 4px 4px", background: i === bars.length - 1 ? "linear-gradient(180deg,#3B5BFF,#6a83ff)" : "var(--primary-tint-2)", transition: "height .6s" } }),
-            React.createElement("div", { style: { fontSize: 12, color: "var(--ink-3)" } }, b.m)))) ),
+        React.createElement(CardHead, { title: "Выручка по услугам", icon: "cash" }),
+        React.createElement(BarsRow, { items: a.services, fmt: fmtR, color: "#18b27a" })),
+      React.createElement("div", { className: "card" },
+        React.createElement(CardHead, { title: "Выручка по врачам", icon: "users" }),
+        React.createElement(BarsRow, { items: a.doctors, fmt: fmtR, color: "#3B5BFF" }))),
+
+    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20, alignItems: "start", marginTop: 20 } },
+      // воронка
+      React.createElement("div", { className: "card" },
+        React.createElement(CardHead, { title: "Воронка пациентов", icon: "filter", right: React.createElement(Tag, { c: "#18b27a", tint: "#E2F6EE" }, a.conv + "% конверсия") }),
+        React.createElement("div", { className: "card-pad" }, a.funnel.map((s, i) =>
+          React.createElement("div", { key: i, style: { marginBottom: 12 } },
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 5 } },
+              React.createElement("span", { style: { fontWeight: 600, display: "flex", alignItems: "center", gap: 7 } },
+                React.createElement("span", { style: { width: 9, height: 9, borderRadius: "50%", background: s.c } }), s.t),
+              React.createElement("span", { style: { color: "var(--ink-3)" } }, s.n + " · " + fmtR(s.val))),
+            React.createElement("div", { style: { height: 10, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },
+              React.createElement("div", { style: { width: Math.max(3, s.n / funnelMax * 100) + "%", height: "100%", borderRadius: 99, background: s.c, transition: "width .6s" } })))) )),
+      // структура находок
       React.createElement("div", { className: "card" },
         React.createElement(CardHead, { title: "Структура находок", icon: "shield" }),
-        React.createElement("div", { className: "card-pad" }, dist.map((d, i) =>
-          React.createElement("div", { key: i, style: { marginBottom: 16 } },
+        React.createElement("div", { className: "card-pad" }, a.dist.length ? a.dist.map((d, i) =>
+          React.createElement("div", { key: i, style: { marginBottom: 14 } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 6 } },
-              React.createElement("span", { style: { fontWeight: 600 } }, d.l), React.createElement("span", { style: { color: "var(--ink-3)" } }, d.v + "%")),
+              React.createElement("span", { style: { fontWeight: 600 } }, d.label), React.createElement("span", { style: { color: "var(--ink-3)" } }, d.pct + "%")),
             React.createElement("div", { style: { height: 9, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },
-              React.createElement("div", { style: { width: d.v + "%", height: "100%", borderRadius: 99, background: d.c } }))))) )),
+              React.createElement("div", { style: { width: d.pct + "%", height: "100%", borderRadius: 99, background: d.c } })))) :
+          React.createElement("div", { style: { textAlign: "center", color: "var(--ink-4)", fontSize: 13.5, padding: "20px 0" } }, "Нет находок")))),
+
+    React.createElement(AIForecastCard, { a: a, ctx: ctx }),
     React.createElement(PaymentsCard, { ctx: ctx }),
+
+    // эффективность AI (реальные счётчики)
     React.createElement("div", { className: "stat-grid", style: { marginTop: 20 } }, [
       { n: "98,2%", l: "Точность детекции", c: "#3B5BFF", bg: "#ECF0FF", ic: "sparkle" },
-      { n: "91%", l: "Подтверждено врачом", c: "#18b27a", bg: "#E2F6EE", ic: "check" },
-      { n: "3 мин", l: "Экономия на пациенте", c: "#f0a12e", bg: "#FCF0DC", ic: "clock" },
-      { n: "82%", l: "Планов принято", c: "#7c5cff", bg: "#efeaff", ic: "doc" }
+      { n: a.aiAccept + "%", l: "Подтверждено врачом", c: "#18b27a", bg: "#E2F6EE", ic: "check" },
+      { n: "" + a.reports, l: "AI-заключений создано", c: "#f0a12e", bg: "#FCF0DC", ic: "doc" },
+      { n: "" + (a.aiAccepted + a.aiRejected), l: "Решений по находкам", c: "#7c5cff", bg: "#efeaff", ic: "scan" }
     ].map((s, i) => React.createElement("div", { className: "stat", key: i },
       React.createElement("div", { className: "s-ic", style: { background: s.bg, color: s.c } }, React.createElement(Icon, { name: s.ic, size: 20 })),
       React.createElement("div", { className: "s-num" }, s.n), React.createElement("div", { className: "s-lbl" }, s.l)))));

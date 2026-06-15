@@ -235,5 +235,13 @@
     return { caries: caries, perio: perio, overall: overall, bandCaries: band(caries), bandPerio: band(perio), bandOverall: band(overall) };
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore };
+  /* Прогноз выручки на месяц (общая модель — GPT-4o) */
+  function forecast(a) {
+    return complete(models().chat, [
+      { role: "system", content: "Ты — финансовый аналитик стоматологической клиники. Отвечай по-русски, кратко, конкретными цифрами." },
+      { role: "user", content: "Данные клиники:\n- Выручка за текущий месяц: " + a.monthRevenue + " ₽\n- Всего оплат: " + a.paymentsCount + " на " + a.totalRevenue + " ₽\n- Средний чек: " + a.avgCheck + " ₽\n- Активный пайплайн (взвешенный): " + a.weighted + " ₽\n- Конверсия лид→лечение: " + a.conv + "%\n- Лидов в воронке: " + a.leads + "\n\nДай прогноз выручки на следующий месяц одним числом-диапазоном и 2-3 коротких пункта, что на него влияет и что сделать для роста. Без преамбулы." }
+    ], 350);
+  }
+
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();

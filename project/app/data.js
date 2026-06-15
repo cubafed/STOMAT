@@ -456,7 +456,8 @@ function crmSetStage(pid, stageId, ensure) {
 function getPayments() { return RadixStore.get("payments", []); }
 function addPayment(p) {
   const list = getPayments();
-  list.unshift({ id: "pay" + Date.now() + "_" + Math.floor(Math.random() * 1e4), date: new Date().toISOString(), pid: p.pid, name: p.name, label: p.label, amount: p.amount });
+  const doctor = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name;
+  list.unshift({ id: "pay" + Date.now() + "_" + Math.floor(Math.random() * 1e4), date: new Date().toISOString(), pid: p.pid, name: p.name, label: p.label, amount: p.amount, doctor: p.doctor || doctor });
   RadixStore.set("payments", list);
   rerenderApp();
   return list[0];
@@ -507,6 +508,58 @@ function getMarketing() {
   return m;
 }
 
+/* ---------- Сводная аналитика клиники (реальные данные) ---------- */
+function analyticsData() {
+  const pays = getPayments();
+  const monthPays = paymentsThisMonth();
+  const fmt = n => Math.round(n);
+  // деньги по услугам (группировка по нормализованному названию)
+  const byService = {};
+  pays.forEach(p => { const k = (p.label || "Услуга").split(" · ")[0]; byService[k] = (byService[k] || 0) + p.amount; });
+  const services = Object.keys(byService).map(k => ({ label: k, value: byService[k] })).sort((a, b) => b.value - a.value).slice(0, 8);
+  // деньги по врачам
+  const byDoc = {};
+  pays.forEach(p => { const k = p.doctor || "—"; byDoc[k] = (byDoc[k] || 0) + p.amount; });
+  const doctors = Object.keys(byDoc).map(k => ({ label: k, value: byDoc[k] })).sort((a, b) => b.value - a.value);
+  // воронка из CRM + crm_stages
+  const st = RadixStore.get("crm_stages", {});
+  const stageOf = c => st[c.id] || c.stage;
+  const funnel = CRM_STAGES.map(s => ({ id: s.id, t: s.t, c: s.c, n: CRM_CARDS.filter(c => stageOf(c) === s.id).length,
+    val: CRM_CARDS.filter(c => stageOf(c) === s.id).reduce((a, c) => a + c.val, 0) }));
+  const leads = CRM_CARDS.length;
+  const won = CRM_CARDS.filter(c => stageOf(c) === "done").length;
+  const inTreat = CRM_CARDS.filter(c => stageOf(c) === "treat" || stageOf(c) === "done").length;
+  const conv = leads ? Math.round(inTreat / leads * 100) : 0;
+  const active = CRM_CARDS.filter(c => stageOf(c) !== "done");
+  const weighted = Math.round(active.reduce((a, c) => a + c.val * (c.prob || 50) / 100, 0));
+  const avgCheck = pays.length ? Math.round(pays.reduce((a, p) => a + p.amount, 0) / pays.length) : 0;
+  // структура находок (реальная, по всем пациентам)
+  const findCount = {};
+  let totalFind = 0;
+  PATIENTS.forEach(p => (p.findings || []).forEach(f => { findCount[f.type] = (findCount[f.type] || 0) + 1; totalFind++; }));
+  const dist = Object.keys(findCount).map(t => ({ type: t, label: (FIND_LIB[t] || {}).label || t, c: (FIND_LIB[t] || {}).c || "#888",
+    pct: totalFind ? Math.round(findCount[t] / totalFind * 100) : 0 })).sort((a, b) => b.pct - a.pct);
+  // эффективность AI: подтверждённые находки (rdx_decided_*) против всех
+  let acc = 0, rej = 0, decidedTotal = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf("rdx_decided_") === 0) {
+        const d = JSON.parse(localStorage.getItem(k)) || {};
+        Object.keys(d).forEach(idx => { if (d[idx] === "acc") acc++; else if (d[idx] === "rej") rej++; decidedTotal++; });
+      }
+    }
+  } catch (e) {}
+  const acceptPct = (acc + rej) ? Math.round(acc / (acc + rej) * 100) : 91;
+  return {
+    services, doctors, funnel, leads, won, conv, weighted, avgCheck,
+    monthRevenue: monthPays.reduce((a, p) => a + p.amount, 0),
+    totalRevenue: pays.reduce((a, p) => a + p.amount, 0),
+    paymentsCount: pays.length, dist, reports: countReports(),
+    aiAccept: acceptPct, aiAccepted: acc, aiRejected: rej
+  };
+}
+
 /* ---------- Счётчик заключений (ключи rdx_reports_*, тяжёлые rdx_img_* не читаем) ---------- */
 function countReports() {
   let n = 0;
@@ -521,4 +574,4 @@ function countReports() {
   return n;
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, analyticsData, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo });
