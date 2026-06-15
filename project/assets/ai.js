@@ -34,11 +34,21 @@
   function complete(model, messages, maxTokens) {
     var viaProxy = usingProxy();
     if (!viaProxy && !getKey()) return Promise.reject(new Error("AI не подключён — задайте ключ или прокси в Настройках"));
-    // gpt-5 / o-серия: max_completion_tokens вместо max_tokens, без кастомной temperature
-    var newGen = /^(gpt-5|o\d)/i.test(model || "");
+    // gpt-5 / o-серия: max_completion_tokens вместо max_tokens, без кастомной temperature.
+    // Reasoning-модели (gpt-5, gpt-5-mini, gpt-5-nano, o*) при дефолтном reasoning_effort
+    // тратят весь бюджет на «размышления» → пустой ответ. Ставим minimal, чтобы осталось
+    // место под текст. gpt-5-chat-latest — НЕ reasoning, параметр не шлём.
+    var m = (model || "").toLowerCase();
+    var newGen = /^(gpt-5|o\d)/.test(m);
+    var isChat = m.indexOf("chat") > -1;
     var body = { model: model, messages: messages };
-    if (newGen) { body.max_completion_tokens = maxTokens || 700; }
-    else { body.max_tokens = maxTokens || 700; body.temperature = 0.4; }
+    if (newGen) {
+      body.max_completion_tokens = maxTokens || 700;
+      if (!isChat) body.reasoning_effort = "minimal";
+    } else {
+      body.max_tokens = maxTokens || 700;
+      body.temperature = 0.4;
+    }
     var url, headers;
     if (viaProxy) {
       // Ходим в свою Edge Function; ключ OpenAI — на сервере, не в браузере
@@ -100,7 +110,7 @@
     return complete(models().chat, msgs, 600);
   }
 
-  function ping() { return complete(models().chat, [{ role: "user", content: "Ответь одним словом: ок" }], 64); }
+  function ping() { return complete(models().chat, [{ role: "user", content: "Ответь одним словом: ок" }], 256); }
 
   /* Vision-анализ загруженного снимка (модель анализа — GPT-5.5).
      Возвращает массив находок в формате приложения. */
