@@ -33,8 +33,18 @@ function CRM({ ctx }) {
   const paidPids = {}; paidMonth.forEach(p => { paidPids[p.pid] = true; });
   const wonMonth = paidMonth.reduce((s, p) => s + p.amount, 0) +
     cards.filter(c => c.stage === "done" && !paidPids[c.pid]).reduce((s, c) => s + c.val, 0);
-  const convRate = 68;
+  // конверсия = доля сделок, дошедших до лечения/завершения (из реальных карточек)
+  const converted = cards.filter(c => c.stage === "treat" || c.stage === "done").length;
+  const convRate = cards.length ? Math.round(converted / cards.length * 100) : 0;
   const fmt = n => n.toLocaleString("ru-RU") + " ₽";
+
+  // источники лидов — из самих карточек, без выдуманных процентов
+  const SRC_COLORS = ["#18A06E", "#2F4BF0", "#FF5A36", "#E8941F", "#7C5CFF"];
+  const srcMap = {};
+  cards.forEach(c => { const k = c.src || "Другое"; srcMap[k] = (srcMap[k] || 0) + 1; });
+  const sources = Object.keys(srcMap)
+    .map((k, i) => ({ l: k, v: Math.round(srcMap[k] / cards.length * 100), c: SRC_COLORS[i % SRC_COLORS.length] }))
+    .sort((a, b) => b.v - a.v);
 
   function move(cardId, stage) {
     setCards(cs => {
@@ -63,7 +73,7 @@ function CRM({ ctx }) {
         React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, "Лиды, консультации и план лечения — от заявки до завершённого случая")),
       React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 10 } },
         React.createElement("button", { className: "btn-app gho" }, React.createElement(Icon, { name: "filter", size: 16 }), "Фильтры"),
-        React.createElement("button", { className: "btn-app pri" }, React.createElement(Icon, { name: "plus", size: 16 }), "Новый лид"))),
+        React.createElement("button", { className: "btn-app pri", onClick: () => ctx.setView("patients") }, React.createElement(Icon, { name: "plus", size: 16 }), "Новый лид"))),
 
     React.createElement("div", { className: "crm-stats" }, stats.map((s, i) =>
       React.createElement("div", { className: "stat", key: i },
@@ -71,6 +81,11 @@ function CRM({ ctx }) {
         React.createElement("div", { className: "s-num", style: { fontSize: 26 } }, s.num),
         React.createElement("div", { className: "s-lbl" }, s.lbl)))),
 
+    cards.length === 0 ? React.createElement(EmptyState, {
+      tone: "card", icon: "filter", title: "Воронка пуста",
+      sub: "Здесь появятся лиды и сделки — от первой заявки до завершённого случая. Онлайн-заявки с сайта попадают сюда автоматически, либо добавьте пациента вручную.",
+      cta: "Добавить пациента", onCta: () => ctx.setView("patients")
+    }) :
     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr", gap: 20 } },
       // KANBAN
       React.createElement("div", null,
@@ -125,6 +140,7 @@ function CRM({ ctx }) {
         React.createElement("div", { className: "card", style: { overflow: "hidden" } },
           React.createElement(CardHead, { title: "Задачи и follow-up на сегодня", icon: "clock",
             right: React.createElement("span", { className: "tag", style: { background: "var(--primary-tint)", color: "var(--primary)" } }, CRM_FOLLOWUPS.length + " задачи") }),
+          CRM_FOLLOWUPS.length === 0 ? React.createElement("div", { style: { padding: "26px 20px", textAlign: "center", color: "var(--ink-3)", fontSize: 13.5 } }, "На сегодня задач нет — всё под контролем.") :
           React.createElement("div", null, CRM_FOLLOWUPS.map((f, i) =>
             React.createElement("div", { key: i, className: "followup" },
               React.createElement("span", { className: "fu-ic", style: { background: f.c + "1a", color: f.c } }, React.createElement(Icon, { name: f.type === "call" ? "bell" : "chat", size: 18 })),
@@ -134,10 +150,7 @@ function CRM({ ctx }) {
               React.createElement("button", { className: "btn-app gho sm", onClick: () => ctx.toast("Задача отмечена выполненной") }, "Выполнить")))) ),
         React.createElement("div", { className: "card" },
           React.createElement(CardHead, { title: "Источники лидов", icon: "share" }),
-          React.createElement("div", { className: "card-pad" }, [
-            { l: "Повторные пациенты", v: 38, c: "#18A06E" }, { l: "Сайт и онлайн-запись", v: 27, c: "#2F4BF0" },
-            { l: "Рекомендации", v: 21, c: "#FF5A36" }, { l: "Соцсети", v: 14, c: "#E8941F" }
-          ].map((d, i) => React.createElement("div", { key: i, style: { marginBottom: 15 } },
+          React.createElement("div", { className: "card-pad" }, sources.map((d, i) => React.createElement("div", { key: i, style: { marginBottom: 15 } },
             React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13.5, marginBottom: 6 } },
               React.createElement("span", { style: { fontWeight: 600 } }, d.l), React.createElement("span", { style: { color: "var(--ink-3)" } }, d.v + "%")),
             React.createElement("div", { style: { height: 9, borderRadius: 99, background: "var(--bg-soft)", overflow: "hidden" } },

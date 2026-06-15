@@ -5,6 +5,7 @@
 
 /* ---------------- COMMUNITY FEED (Insta-like) ---------------- */
 function Community({ ctx }) {
+  const me = (RadixStore.get("user", null) || { name: "Вы" });
   const [posts, setPosts] = useState(() => FEED.map(p => ({ ...p })));
   const [open, setOpen] = useState({});      // postId -> bool (comments shown)
   const [drafts, setDrafts] = useState({});  // postId -> text
@@ -15,7 +16,7 @@ function Community({ ctx }) {
   }
   function addComment(id) {
     const txt = (drafts[id] || "").trim(); if (!txt) return;
-    setExtra(e => ({ ...e, [id]: [...(e[id] || []), { who: "Алексей Петров", color: "#18A06E", text: txt, time: "сейчас", me: true }] }));
+    setExtra(e => ({ ...e, [id]: [...(e[id] || []), { who: me.name, color: "#18A06E", text: txt, time: "сейчас", me: true }] }));
     setPosts(ps => ps.map(p => p.id === id ? { ...p, comments: p.comments + 1 } : p));
     setDrafts(d => ({ ...d, [id]: "" }));
   }
@@ -53,11 +54,12 @@ function Community({ ctx }) {
 
       // composer
       React.createElement("div", { className: "feed-composer" },
-        React.createElement(Avatar, { name: "Алексей Петров", color: "#18A06E", size: 42, radius: "13px" }),
+        React.createElement(Avatar, { name: me.name, color: "#18A06E", size: 42, radius: "13px" }),
         React.createElement("div", { className: "fc-input", onClick: () => ctx.toast("Редактор поста скоро") }, "Поделитесь клиническим случаем…"),
         React.createElement("button", { className: "icon-btn", onClick: () => ctx.toast("Загрузка снимка") }, React.createElement(Icon, { name: "scan", size: 18 }))),
 
       // posts
+      posts.length === 0 ? React.createElement(EmptyState, { tone: "card", icon: "users", title: "Лента пуста", sub: "Делитесь клиническими случаями и обсуждайте их с коллегами — опубликуйте первый пост." }) : null,
       posts.map(p => React.createElement("div", { className: "post", key: p.id },
         React.createElement("div", { className: "post-h" },
           React.createElement(Avatar, { name: p.author, color: p.color, size: 44, radius: "13px" }),
@@ -224,6 +226,7 @@ function Notifications({ ctx }) {
         React.createElement("h1", { className: "page-h1" }, "Уведомления"),
         React.createElement("p", { style: { color: "var(--ink-3)", marginTop: 4 } }, unread + " непрочитанных")),
       React.createElement("button", { className: "btn-app gho", style: { marginLeft: "auto" }, onClick: () => setItems(it => it.map(n => ({ ...n, unread: false }))) }, "Прочитать всё")),
+    items.length === 0 ? React.createElement(EmptyState, { tone: "card", icon: "bell", title: "Нет уведомлений", sub: "Новые онлайн-заявки с сайта и события по пациентам появятся здесь." }) :
     React.createElement("div", { className: "card", style: { overflow: "hidden" } }, items.map((n, i) =>
       React.createElement("div", { key: n.id, className: "notif" + (n.unread ? " unread" : ""), onClick: () => { setItems(it => it.map(x => x.id === n.id ? { ...x, unread: false } : x)); if (n.booking) ctx.setView("calendar"); else if (n.pid) ctx.openPatient(n.pid); } },
         React.createElement("span", { className: "n-ic", style: { background: n.c + "1a", color: n.c } }, React.createElement(Icon, { name: n.icon, size: 19 })),
@@ -238,7 +241,7 @@ function ActivityLog() {
   let lastDate = null;
   return React.createElement("div", { className: "card" },
     React.createElement(CardHead, { title: "Журнал активности", icon: "history" }),
-    React.createElement("div", { className: "card-pad" }, ACTIVITY.map((a, i) => {
+    React.createElement("div", { className: "card-pad" }, ACTIVITY.length === 0 ? React.createElement("div", { style: { padding: "18px 4px", color: "var(--ink-3)", fontSize: 13.5, textAlign: "center" } }, "Пока нет активности команды.") : ACTIVITY.map((a, i) => {
       const showDate = a.date !== lastDate; lastDate = a.date;
       return React.createElement("div", { key: i },
         showDate ? React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "var(--ink-4)", textTransform: "uppercase", letterSpacing: ".08em", margin: (i ? 16 : 0) + "px 0 6px" } }, a.date) : null,

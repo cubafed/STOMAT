@@ -122,4 +122,15 @@ function Skeleton() {
         React.createElement("div", { style: { flex: 1 } }, bar("60%", 12), bar("85%", 10, 6)))))));
 }
 
-Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, Toast, Tag, Avatar, CardHead, Skeleton });
+/* Универсальное пустое состояние — единый брендовый вид для всех разделов.
+   props: icon, title, sub, cta (текст кнопки), onCta, tone ("soft" | "card") */
+function EmptyState({ icon, title, sub, cta, onCta, tone }) {
+  return React.createElement("div", { className: "empty-state" + (tone === "card" ? " es-card" : "") },
+    React.createElement("div", { className: "es-ic" }, React.createElement(Icon, { name: icon || "sparkle", size: 26 })),
+    React.createElement("div", { className: "es-title" }, title),
+    sub ? React.createElement("div", { className: "es-sub" }, sub) : null,
+    cta ? React.createElement("button", { className: "btn-app pri", style: { marginTop: 18 }, onClick: onCta },
+      React.createElement(Icon, { name: "plus", size: 16 }), cta) : null);
+}
+
+Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState });

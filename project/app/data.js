@@ -385,7 +385,9 @@ function cloudAccount() {
   catch (e) { return false; }
 }
 function rebuildData() {
-  const clean = cloudAccount();
+  // Демо-записи отключены полностью: приложение всегда начинается с чистого листа,
+  // показываются только собственные данные клиники (RadixStore → синхронизация в облако).
+  const clean = true;
   const setArr = (arr, demo) => { arr.length = 0; if (!clean) demo.forEach(x => arr.push(x)); };
   setArr(PATIENTS, DEMO.patients);
   setArr(CRM_CARDS, DEMO.crmCards);

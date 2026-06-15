@@ -216,7 +216,7 @@ function App() {
     toast: showToast, role, setRole
   };
 
-  const notifCount = 3 + RadixStore.get("bookings", []).length;
+  const notifCount = RadixStore.get("bookings", []).length;
   const NAV = [
     { sec: "Клиника" },
     { k: "dashboard", ic: "home", l: "Дашборд" },
@@ -259,11 +259,11 @@ function App() {
   let main;
   if (needsPatient && !patient) {
     main = React.createElement("div", { className: "content-pad" },
-      React.createElement("div", { className: "card empty" },
-        React.createElement("div", { className: "e-ic" }, React.createElement(Icon, { name: "users", size: 28 })),
-        React.createElement("div", { style: { fontWeight: 600, color: "var(--ink-2)" } }, "Пока нет пациентов"),
-        React.createElement("div", { style: { fontSize: 14, maxWidth: 360 } }, "Добавьте первого пациента в разделе «Пациенты» — после этого станут доступны снимки, AI-анализ, план лечения и ассистент."),
-        React.createElement("button", { className: "btn-app pri", style: { marginTop: 14 }, onClick: () => ctx.setView("patients") }, "Перейти к пациентам")));
+      React.createElement(EmptyState, {
+        tone: "card", icon: "users", title: "Пока нет пациентов",
+        sub: "Добавьте первого пациента в разделе «Пациенты» — после этого станут доступны снимки, AI-анализ, план лечения и ассистент.",
+        cta: "Перейти к пациентам", onCta: () => ctx.setView("patients")
+      }));
   }
   else if (view === "dashboard") main = React.createElement(Dashboard, { ctx });
   else if (view === "patients") main = React.createElement(Patients, { ctx });
@@ -315,7 +315,7 @@ function App() {
       React.createElement("div", { className: "side-foot" },
         React.createElement("div", { className: "side-upgrade" },
           React.createElement("div", { className: "su-t" }, "Тариф «Клиника»"),
-          React.createElement("div", { className: "su-s" }, "Безлимит анализов · 142 за месяц"),
+          React.createElement("div", { className: "su-s" }, "Безлимит AI-анализов снимков"),
           React.createElement("button", { className: "btn-app", style: { background: "#fff", color: "var(--ink)", width: "100%", position: "relative" }, onClick: () => ctx.setView("billing") }, "Управлять подпиской")),
         React.createElement("div", { className: "doctor" },
           React.createElement("div", { className: "av" }, initials(USER.name)),

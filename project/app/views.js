@@ -45,7 +45,7 @@ function BriefingCard({ ctx, schedule, bookingsN, monthSum }) {
 }
 
 function Dashboard({ ctx }) {
-  const uname = (RadixStore.get("user", null) || { name: "Алексей Петров" }).name.split(" ")[0];
+  const uname = (RadixStore.get("user", null) || { name: "Доктор" }).name.split(" ")[0];
   const h = new Date().getHours();
   const hello = h < 5 ? "Доброй ночи" : h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер";
   const today = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
@@ -85,7 +85,7 @@ function Dashboard({ ctx }) {
       React.createElement("div", { className: "card" },
         React.createElement(CardHead, { title: "Расписание на сегодня", icon: "calendar",
           right: React.createElement("button", { className: "btn-app gho sm", onClick: () => ctx.setView("calendar") }, "Весь день") }),
-        React.createElement("div", null, schedule.map((a, i) =>
+        React.createElement("div", null, schedule.length === 0 ? React.createElement("div", { style: { padding: "34px 20px", textAlign: "center", color: "var(--ink-3)", fontSize: 13.5 } }, "На сегодня приёмов нет — запишите пациента в расписании.") : schedule.map((a, i) =>
           React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < schedule.length - 1 ? "1px solid var(--line)" : "none" } },
             React.createElement("div", { style: { fontWeight: 700, fontFamily: "var(--font-display)", width: 52, color: "var(--ink-2)" } }, a.t),
             React.createElement(Avatar, { name: a.n, color: a.c, size: 38 }),
@@ -97,7 +97,7 @@ function Dashboard({ ctx }) {
 
       React.createElement("div", { className: "card", style: { overflow: "hidden" } },
         React.createElement(CardHead, { title: "Очередь анализа ИИ", icon: "sparkle" }),
-        React.createElement("div", { style: { padding: 14 } }, queue.map((p, i) => {
+        React.createElement("div", { style: { padding: 14 } }, queue.length === 0 ? React.createElement("div", { style: { padding: "30px 16px", textAlign: "center", color: "var(--ink-3)", fontSize: 13.5 } }, "Нет снимков в очереди — загрузите снимок в разделе «Анализ».") : queue.map((p, i) => {
           const st = statusTag(p.flag);
           return React.createElement("button", { key: p.id, onClick: () => ctx.openAnalysis(p.id),
             style: { display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: 11, border: "1px solid var(--line)", borderRadius: 12, background: "#fff", cursor: "pointer", marginBottom: 8, fontFamily: "inherit" } },
