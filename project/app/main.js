@@ -255,8 +255,17 @@ function App() {
   };
 
   const patient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
+  const needsPatient = view === "assistant" || view === "analysis" || view === "plan" || view === "perio";
   let main;
-  if (view === "dashboard") main = React.createElement(Dashboard, { ctx });
+  if (needsPatient && !patient) {
+    main = React.createElement("div", { className: "content-pad" },
+      React.createElement("div", { className: "card empty" },
+        React.createElement("div", { className: "e-ic" }, React.createElement(Icon, { name: "users", size: 28 })),
+        React.createElement("div", { style: { fontWeight: 600, color: "var(--ink-2)" } }, "Пока нет пациентов"),
+        React.createElement("div", { style: { fontSize: 14, maxWidth: 360 } }, "Добавьте первого пациента в разделе «Пациенты» — после этого станут доступны снимки, AI-анализ, план лечения и ассистент."),
+        React.createElement("button", { className: "btn-app pri", style: { marginTop: 14 }, onClick: () => ctx.setView("patients") }, "Перейти к пациентам")));
+  }
+  else if (view === "dashboard") main = React.createElement(Dashboard, { ctx });
   else if (view === "patients") main = React.createElement(Patients, { ctx });
   else if (view === "crm") main = React.createElement(CRM, { ctx });
   else if (view === "calendar") main = React.createElement(Calendar, { ctx });
@@ -351,5 +360,6 @@ function App() {
 (window.RadixDB ? RadixDB.init() : Promise.resolve())
   .catch(function () {})
   .then(function () {
+    if (window.rebuildData) rebuildData(); // после авторизации: чистый аккаунт в облаке, демо — только офлайн
     ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   });

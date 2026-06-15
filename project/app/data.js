@@ -370,9 +370,33 @@ const BILLING = {
   ]
 };
 
-/* ---------- Пациенты: персистентный CRUD поверх демо-данных ---------- */
-// при загрузке: добавить своих пациентов, применить правки демо, убрать архивных
-(function () {
+/* ---------- Данные клиники: демо-снимок + сборка поверх него ----------
+   Встроенные демо-записи показываем ТОЛЬКО в локальном/офлайн-режиме
+   (витрина продукта). В реальном облачном аккаунте клиника начинается
+   с чистого листа — видны лишь её собственные записи из облака.
+   rebuildData() вызывается повторно после авторизации (см. main.js). */
+const DEMO = {
+  patients: PATIENTS.slice(), crmCards: CRM_CARDS.slice(), calEvents: CAL_EVENTS.slice(),
+  followups: CRM_FOLLOWUPS.slice(), notifs: NOTIFS.slice(), activity: ACTIVITY.slice(),
+  notes: Object.assign({}, PATIENT_NOTES)
+};
+function cloudAccount() {
+  try { const s = window.RadixDB && RadixDB.state(); return !!(s && s.enabled && s.clinicId); }
+  catch (e) { return false; }
+}
+function rebuildData() {
+  const clean = cloudAccount();
+  const setArr = (arr, demo) => { arr.length = 0; if (!clean) demo.forEach(x => arr.push(x)); };
+  setArr(PATIENTS, DEMO.patients);
+  setArr(CRM_CARDS, DEMO.crmCards);
+  setArr(CAL_EVENTS, DEMO.calEvents);
+  setArr(CRM_FOLLOWUPS, DEMO.followups);
+  setArr(NOTIFS, DEMO.notifs);
+  setArr(ACTIVITY, DEMO.activity);
+  Object.keys(PATIENT_NOTES).forEach(k => delete PATIENT_NOTES[k]);
+  if (!clean) Object.assign(PATIENT_NOTES, DEMO.notes);
+
+  // поверх базы — собственные записи клиники (RadixStore → синхронизируются в облако)
   RadixStore.get("custom_patients", []).forEach(p => PATIENTS.push(p));
   const edits = RadixStore.get("patient_edits", {});
   PATIENTS.forEach(p => { if (edits[p.id]) Object.assign(p, edits[p.id]); });
@@ -380,7 +404,8 @@ const BILLING = {
   for (let i = PATIENTS.length - 1; i >= 0; i--) if (arch.indexOf(PATIENTS[i].id) > -1) PATIENTS.splice(i, 1);
   RadixStore.get("custom_events", []).forEach(e => CAL_EVENTS.push(e));
   RadixStore.get("custom_crm_cards", []).forEach(c => CRM_CARDS.push(c));
-})();
+}
+rebuildData();
 function persistCustomPatients() {
   RadixStore.set("custom_patients", PATIENTS.filter(p => p.id >= 100));
 }
@@ -574,4 +599,4 @@ function countReports() {
   return n;
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, analyticsData, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, analyticsData, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo, rebuildData });
