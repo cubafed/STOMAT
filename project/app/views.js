@@ -334,7 +334,6 @@ function Analysis({ ctx }) {
   const [decided, setDecided] = useState(() => RadixStore.get("decided_" + ctx.patientId, {}));
   const [compare, setCompare] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [imgAR, setImgAR] = useState(null); // соотношение сторон снимка — чтобы рамки находок совпадали с изображением
   const [contrast, setContrast] = useState(1);
   const [invert, setInvert] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -557,7 +556,9 @@ function Analysis({ ctx }) {
   const filmStyle = Object.assign({
     transform: `scale(${zoom})`, transformOrigin: `${pan.x}% ${pan.y}%`,
     filter: `contrast(${contrast}) ${invert ? "invert(1) hue-rotate(180deg)" : ""}`
-  }, (img && imgAR) ? { inset: 0, margin: "auto", width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%", aspectRatio: String(imgAR) } : {});
+  }, img
+    ? { position: "relative", inset: "auto", maxWidth: "100%", maxHeight: "100%", lineHeight: 0 } // контейнер по размеру снимка → рамки находок совпадают
+    : { position: "absolute", inset: 0 });
 
   const filterChips = [
     ["all", "Все"], ["caries", "Кариес"], ["tartar", "Камень"], ["periap", "Эндо"], ["resto", "Пломбы"]
@@ -642,23 +643,24 @@ function Analysis({ ctx }) {
           React.createElement("button", { className: "rv-tool", title: "Сбросить вид", onClick: () => { resetView(); setMeasure(false); setMLine(null); } }, React.createElement(Icon, { name: "history", size: 16 }))),
         compare
           ? React.createElement(BeforeAfter, { before: Object.assign({}, patient.arch), after: Object.assign({}, patient.arch, { decayAt: [], restoreAt: patient.arch.decayAt[0] != null ? patient.arch.decayAt[0] : patient.arch.restoreAt }), tagBefore: "До · март", tagAfter: "После · сентябрь" })
-          : React.createElement("div", { className: "rv-film", style: measure ? { cursor: "crosshair" } : null, onClick: onFilmClick, onMouseMove: e => { if (zoom > 1 && !measure) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
+          : React.createElement("div", { className: "rv-film", style: Object.assign({ display: "flex", alignItems: "center", justifyContent: "center" }, measure ? { cursor: "crosshair" } : {}), onClick: onFilmClick, onMouseMove: e => { if (zoom > 1 && !measure) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
               React.createElement("div", { className: "rv-film-inner", style: filmStyle },
                 img
-                  ? React.createElement("img", { src: img, alt: "Снимок", onLoad: e => setImgAR(e.target.naturalWidth / e.target.naturalHeight), style: { width: "100%", height: "100%", objectFit: "contain", display: "block" } })
-                  : React.createElement(Arch, patient.arch)),
-              mLine ? React.createElement("svg", { style: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 7 }, viewBox: "0 0 100 100", preserveAspectRatio: "none" },
-                mLine.x2 != null ? React.createElement("line", { x1: mLine.x1, y1: mLine.y1, x2: mLine.x2, y2: mLine.y2, stroke: "#11AEC8", strokeWidth: 0.6, strokeDasharray: "1.5 1" }) : null,
-                React.createElement("circle", { cx: mLine.x1, cy: mLine.y1, r: 1, fill: "#11AEC8" }),
-                mLine.x2 != null ? React.createElement("circle", { cx: mLine.x2, cy: mLine.y2, r: 1, fill: "#11AEC8" }) : null) : null,
+                  ? React.createElement("img", { src: img, alt: "Снимок", style: { display: "block", maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto" } })
+                  : React.createElement(Arch, patient.arch),
+                // оверлеи ВНУТРИ контейнера снимка → точно поверх изображения
+                scanning ? React.createElement("div", { className: "scanline" }) : null,
+                mLine ? React.createElement("svg", { style: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 7 }, viewBox: "0 0 100 100", preserveAspectRatio: "none" },
+                  mLine.x2 != null ? React.createElement("line", { x1: mLine.x1, y1: mLine.y1, x2: mLine.x2, y2: mLine.y2, stroke: "#11AEC8", strokeWidth: 0.6, strokeDasharray: "1.5 1" }) : null,
+                  React.createElement("circle", { cx: mLine.x1, cy: mLine.y1, r: 1, fill: "#11AEC8" }),
+                  mLine.x2 != null ? React.createElement("circle", { cx: mLine.x2, cy: mLine.y2, r: 1, fill: "#11AEC8" }) : null) : null,
+                showDet && !scanning ? React.createElement("div", { className: "det-layer" }, visibleDets.map((f) => {
+                  const oi = findings.indexOf(f); const info = findingInfo(f);
+                  return React.createElement("div", { key: oi, className: "det" + (hot === oi ? " hot" : ""), style: { left: f.box.x + "%", top: f.box.y + "%", width: f.box.w + "%", height: f.box.h + "%", "--c": info.c }, onMouseEnter: () => setHot(oi), onMouseLeave: () => setHot(-1) },
+                    React.createElement("div", { className: "box" }),
+                    React.createElement("div", { className: "lbl" }, info.label.split(" ")[0], React.createElement("span", { className: "pc" }, f.pc + "%"))); })) : null),
               measure ? React.createElement("div", { style: { position: "absolute", top: 10, left: 10, zIndex: 8, background: "rgba(10,15,31,.7)", color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 8 } },
                 mPct != null ? "Длина: " + mPct + "% кадра" : (mLine ? "Кликните вторую точку" : "Кликните первую точку")) : null,
-              scanning ? React.createElement("div", { className: "scanline" }) : null,
-              showDet && !scanning ? React.createElement("div", { className: "det-layer" }, visibleDets.map((f) => {
-                const oi = findings.indexOf(f); const info = findingInfo(f);
-                return React.createElement("div", { key: oi, className: "det" + (hot === oi ? " hot" : ""), style: { left: f.box.x + "%", top: f.box.y + "%", width: f.box.w + "%", height: f.box.h + "%", "--c": info.c }, onMouseEnter: () => setHot(oi), onMouseLeave: () => setHot(-1) },
-                  React.createElement("div", { className: "box" }),
-                  React.createElement("div", { className: "lbl" }, info.label.split(" ")[0], React.createElement("span", { className: "pc" }, f.pc + "%"))); })) : null,
               React.createElement("div", { className: "rv-zoomhint" }, zoom > 1 ? "Зум " + zoom.toFixed(2) + "× · двигайте мышью" : "Кнопками + / − приблизьте"))),
 
       // SIDE
