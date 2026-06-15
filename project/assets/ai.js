@@ -29,16 +29,25 @@
 
   function complete(model, messages, maxTokens) {
     if (!hasKey()) return Promise.reject(new Error("Ключ API не задан — добавьте его в Настройках"));
+    // gpt-5 / o-серия: max_completion_tokens вместо max_tokens, без кастомной temperature
+    var newGen = /^(gpt-5|o\d)/i.test(model || "");
+    var body = { model: model, messages: messages };
+    if (newGen) { body.max_completion_tokens = maxTokens || 700; }
+    else { body.max_tokens = maxTokens || 700; body.temperature = 0.4; }
     return fetch(baseUrl() + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() },
-      body: JSON.stringify({ model: model, messages: messages, temperature: 0.4, max_tokens: maxTokens || 700 })
+      body: JSON.stringify(body)
     }).then(function (r) {
       if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) {
         throw new Error((j.error && j.error.message) || ("HTTP " + r.status));
       });
       return r.json();
-    }).then(function (j) { return j.choices[0].message.content.trim(); });
+    }).then(function (j) {
+      var c = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+      if (!c) throw new Error("Пустой ответ модели (" + model + ")");
+      return c.trim();
+    });
   }
 
   function findingsBrief(patient) {
@@ -76,7 +85,7 @@
     return complete(models().chat, msgs, 600);
   }
 
-  function ping() { return complete(models().chat, [{ role: "user", content: "ok" }], 5); }
+  function ping() { return complete(models().chat, [{ role: "user", content: "Ответь одним словом: ок" }], 64); }
 
   /* Vision-анализ загруженного снимка (модель анализа — GPT-5.5).
      Возвращает массив находок в формате приложения. */
