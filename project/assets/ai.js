@@ -1,13 +1,14 @@
 /* ============================================================
    Радикс AI — интеграция с OpenAI
-   · Анализ снимков и заключения  → GPT-5.5 (премиум-модель)
-   · Общий чат-ассистент          → GPT-4o (общий доступ)
+   · Анализ снимков (vision)        → gpt-5-chat-latest (мультимодальная)
+   · Отчёты, заключения, ассистент  → gpt-5-nano (быстрая/экономная)
    Ключ API хранится только в localStorage браузера врача.
    ============================================================ */
 (function () {
   "use strict";
-  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat";
-  var DEF_ANALYSIS = "gpt-5.5", DEF_CHAT = "gpt-4o";
+  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base";
+  var DEF_ANALYSIS = "gpt-5-nano", DEF_CHAT = "gpt-5-nano", DEF_VISION = "gpt-5-chat-latest";
+  var DEF_BASE = "https://api.openai.com/v1";
 
   function ls(k, v) {
     try {
@@ -15,16 +16,20 @@
       if (v === null || v === "") localStorage.removeItem(k); else localStorage.setItem(k, v);
     } catch (e) { return null; }
   }
-  function models() { return { analysis: ls(LS_AM) || DEF_ANALYSIS, chat: ls(LS_CM) || DEF_CHAT }; }
+  function models() { return { analysis: ls(LS_AM) || DEF_ANALYSIS, chat: ls(LS_CM) || DEF_CHAT, vision: ls(LS_VM) || DEF_VISION }; }
   function getKey() { return ls(LS_KEY) || ""; }
   function hasKey() { return !!getKey(); }
-  function configure(key, analysisModel, chatModel) {
+  // База API: OpenAI по умолчанию; для прокси/шлюза (если ключ не sk-…) — задаётся в Настройках
+  function baseUrl() { return (ls(LS_BASE) || DEF_BASE).replace(/\/+$/, ""); }
+  function configure(key, analysisModel, chatModel, visionModel, base) {
     ls(LS_KEY, key); ls(LS_AM, analysisModel); ls(LS_CM, chatModel);
+    if (visionModel !== undefined) ls(LS_VM, visionModel);
+    if (base !== undefined) ls(LS_BASE, base);
   }
 
   function complete(model, messages, maxTokens) {
     if (!hasKey()) return Promise.reject(new Error("Ключ API не задан — добавьте его в Настройках"));
-    return fetch("https://api.openai.com/v1/chat/completions", {
+    return fetch(baseUrl() + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() },
       body: JSON.stringify({ model: model, messages: messages, temperature: 0.4, max_tokens: maxTokens || 700 })
@@ -97,7 +102,7 @@
     });
   }
   function analyzeImage(dataUrl) {
-    return complete(models().analysis, [
+    return complete(models().vision, [
       { role: "system", content: SYS },
       {
         role: "user", content: [
@@ -243,5 +248,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();

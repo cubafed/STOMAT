@@ -413,14 +413,16 @@ function AISettingsCard({ ctx }) {
   const [key, setKey] = useState(() => RadixAI.getKey());
   const [am, setAm] = useState(() => RadixAI.models().analysis);
   const [cm, setCm] = useState(() => RadixAI.models().chat);
+  const [vm, setVm] = useState(() => RadixAI.models().vision);
+  const [base, setBase] = useState(() => RadixAI.baseUrl());
   const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState(null); // null | "wait" | "ok" | "err: …"
   function save() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim());
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim());
     ctx.toast(key.trim() ? "AI подключён — заключения и чат работают вживую" : "Ключ удалён — приложение в демо-режиме");
   }
   function check() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim());
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim());
     setTest("wait");
     RadixAI.ping().then(() => setTest("ok")).catch(e => setTest("err: " + e.message));
   }
@@ -434,16 +436,24 @@ function AISettingsCard({ ctx }) {
         React.createElement("div", { style: { display: "flex", gap: 8 } },
           React.createElement("input", { style: Object.assign({}, inp, { flex: 1 }), type: showKey ? "text" : "password", placeholder: "sk-…", value: key, onChange: e => setKey(e.target.value) }),
           React.createElement("button", { className: "btn-app gho", onClick: () => setShowKey(s => !s) }, showKey ? "Скрыть" : "Показать")),
-        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Ключ хранится только в этом браузере (localStorage) и отправляется напрямую в OpenAI.")),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 } },
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Ключ хранится только в этом браузере (localStorage) и отправляется напрямую на адрес API ниже.")),
+      React.createElement("div", { style: { marginBottom: 14 } },
+        React.createElement("label", { style: lbl }, "Адрес API"),
+        React.createElement("input", { style: inp, value: base, onChange: e => setBase(e.target.value), placeholder: "https://api.openai.com/v1" }),
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Оставьте для OpenAI. Для прокси/шлюза (если ключ не в формате sk-…) укажите его базовый URL — запросы идут на «/chat/completions».")),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 } },
         React.createElement("div", null,
-          React.createElement("label", { style: lbl }, "Модель анализа снимков"),
+          React.createElement("label", { style: lbl }, "Анализ снимков (vision)"),
+          React.createElement("input", { style: inp, value: vm, onChange: e => setVm(e.target.value) }),
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Чтение рентгена · мультимодальная")),
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Отчёты и анализ"),
           React.createElement("input", { style: inp, value: am, onChange: e => setAm(e.target.value) }),
-          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Заключения и объяснения · премиум")),
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Заключения, планы, тексты")),
         React.createElement("div", null,
-          React.createElement("label", { style: lbl }, "Модель чата"),
+          React.createElement("label", { style: lbl }, "Ассистент и чат"),
           React.createElement("input", { style: inp, value: cm, onChange: e => setCm(e.target.value) }),
-          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Ассистент · общий доступ"))),
+          React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Диалог, команды, скоринг"))),
       React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } },
         React.createElement("button", { className: "btn-app pri", onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), "Сохранить"),
         React.createElement("button", { className: "btn-app gho", onClick: check, disabled: test === "wait" }, React.createElement(Icon, { name: "sparkle", size: 16 }), test === "wait" ? "Проверка…" : "Проверить соединение"),

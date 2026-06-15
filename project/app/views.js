@@ -631,7 +631,7 @@ function Analysis({ ctx }) {
       React.createElement("div", { className: "rv-stage" },
         React.createElement("div", { className: "rv-toolbar" },
           React.createElement("span", { className: "rv-chip" }, React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: scanning ? "var(--warn)" : "#18A06E", display: "inline-block" } }), scanning ? "Анализ…" : "Анализ завершён"),
-          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().analysis + " vision" : "Демо-Vision") : "Радикс-Vision 3.1"),
+          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().vision + " vision" : "Демо-Vision") : "Радикс-Vision 3.1"),
           React.createElement("div", { className: "rv-spacer" }),
           React.createElement("button", { className: "rv-tool" + (showDet ? " on" : ""), title: "Показать находки", onClick: () => setShowDet(s => !s) }, React.createElement(Icon, { name: "eye", size: 16 })),
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),
