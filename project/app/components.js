@@ -133,4 +133,62 @@ function EmptyState({ icon, title, sub, cta, onCta, tone }) {
       React.createElement(Icon, { name: "plus", size: 16 }), cta) : null);
 }
 
-Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState });
+/* Планировщик приёма — единый для воронки CRM и расписания.
+   patient: фиксированный пациент (из карточки сделки) либо null → выбор из списка.
+   onPick({ pid, name, color, day, start, dur, work }) */
+function Scheduler({ patient, work, onPick, onClose }) {
+  const DAYS = window.CAL_DAYS || [];
+  const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+  const people = window.PATIENTS || [];
+  const [pid, setPid] = useState(patient ? patient.id : (people[0] ? people[0].id : ""));
+  const [day, setDay] = useState(0);
+  const [hour, setHour] = useState(10);
+  const [dur, setDur] = useState(1);
+  const [w, setW] = useState(work || "Приём");
+  const inp = { width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", background: "#fff", color: "var(--ink)" };
+  const lbl = { display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)", margin: "14px 0 6px" };
+  const target = patient || people.find(x => x.id === +pid);
+  function confirm() {
+    if (!target) return;
+    onPick({ pid: target.id, name: target.name, color: target.color, day: +day, start: +hour, dur: +dur, work: (w || "").trim() || "Приём" });
+  }
+  return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 320, background: "rgba(10,8,5,.45)", display: "grid", placeItems: "center", padding: 16 }, onClick: onClose },
+    React.createElement("div", { className: "card", style: { width: "min(420px, 100%)", padding: 22 }, onClick: e => e.stopPropagation() },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6 } },
+        React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "calendar", size: 18 })),
+        React.createElement("h3", { style: { fontFamily: "var(--font-display)", fontSize: 18, flex: 1 } }, "Записать на приём"),
+        React.createElement("button", { className: "icon-btn", onClick: onClose }, React.createElement(Icon, { name: "x", size: 16 }))),
+      patient
+        ? React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginTop: 8 } },
+            React.createElement(Avatar, { name: patient.name, color: patient.color, size: 36 }),
+            React.createElement("div", { style: { fontWeight: 600 } }, patient.name))
+        : (people.length
+            ? React.createElement("div", null,
+                React.createElement("label", { style: lbl }, "Пациент"),
+                React.createElement("select", { style: inp, value: pid, onChange: e => setPid(e.target.value) },
+                  people.map(p => React.createElement("option", { key: p.id, value: p.id }, p.name))))
+            : React.createElement("div", { style: { marginTop: 10, fontSize: 13.5, color: "var(--ink-3)" } }, "Сначала добавьте пациента в разделе «Пациенты».")),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "День"),
+          React.createElement("select", { style: inp, value: day, onChange: e => setDay(e.target.value) },
+            DAYS.map((d, i) => React.createElement("option", { key: i, value: i }, d)))),
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Время"),
+          React.createElement("select", { style: inp, value: hour, onChange: e => setHour(e.target.value) },
+            HOURS.map(h => React.createElement("option", { key: h, value: h }, h + ":00"))))),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Длительность"),
+          React.createElement("select", { style: inp, value: dur, onChange: e => setDur(e.target.value) },
+            [["0.5", "30 мин"], ["1", "1 час"], ["1.5", "1,5 часа"], ["2", "2 часа"]].map(o =>
+              React.createElement("option", { key: o[0], value: o[0] }, o[1])))),
+        React.createElement("div", null,
+          React.createElement("label", { style: lbl }, "Тип приёма"),
+          React.createElement("input", { style: inp, value: w, onChange: e => setW(e.target.value), placeholder: "Приём" }))),
+      React.createElement("div", { style: { display: "flex", gap: 10, marginTop: 20 } },
+        React.createElement("button", { className: "btn-app pri", style: { flex: 1 }, disabled: !target, onClick: confirm }, React.createElement(Icon, { name: "check", size: 16 }), "Записать"),
+        React.createElement("button", { className: "btn-app gho", onClick: onClose }, "Отмена"))));
+}
+
+Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState, Scheduler });

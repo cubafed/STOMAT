@@ -449,6 +449,19 @@ function addCalEvent(ev) {
   rerenderApp();
 }
 
+/* Связка расписания и воронки: ближайший приём пациента + его подпись */
+function nextApptFor(pid) {
+  const evs = CAL_EVENTS.filter(e => e.pid === pid);
+  if (!evs.length) return null;
+  return evs.slice().sort((a, b) => (a.day - b.day) || (a.start - b.start))[0];
+}
+function apptLabel(ev) {
+  if (!ev) return null;
+  const d = (CAL_DAYS[ev.day] || "").split(" ");
+  const hm = Math.floor(ev.start) + ":" + ("0" + Math.round((ev.start % 1) * 60)).slice(-2);
+  return (d[0] || "") + (d[1] ? " " + d[1] : "") + " · " + hm;
+}
+
 /* Связка с CRM: найти сделку пациента или создать кастомную (персистентно) */
 function crmEnsureCard(patient, work, val) {
   let card = CRM_CARDS.find(c => c.pid === patient.id);
@@ -601,4 +614,4 @@ function countReports() {
   return n;
 }
 
-Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, analyticsData, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo, rebuildData });
+Object.assign(window, { React, useState, useEffect, useRef, useMemo, ICONS, Icon, Arch, PATIENTS, FIND_LIB, findingInfo, initials, statusTag, PALS, CRM_STAGES, CRM_CARDS, CRM_FOLLOWUPS, TEAM, CAL_DAYS, CAL_EVENTS, NOTIFS, ACTIVITY, FEED, FEED_COMMENTS, PATIENT_NOTES, BILLING, crmSetStage, crmEnsureCard, addPatient, updatePatient, archivePatient, addCalEvent, nextApptFor, apptLabel, getPayments, addPayment, paymentsThisMonth, getPlan, setPlanState, countReports, analyticsData, UPSELLS, pickUpsells, getMarketing, MARKETING_DEFAULTS, SEVERITY, severityInfo, rebuildData });

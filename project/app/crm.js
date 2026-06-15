@@ -9,6 +9,7 @@ function CRM({ ctx }) {
   const [drag, setDrag] = useState(null);
   const [over, setOver] = useState(null);
   const [advice, setAdvice] = useState(null); // { cardId, loading, text, mode }
+  const [sched, setSched] = useState(null);   // { card, patient } — планируем приём из сделки
   function scoreDeal(card, stage) {
     if (advice && advice.cardId === card.id && !advice.loading) { setAdvice(null); return; } // повторный клик — скрыть
     setAdvice({ cardId: card.id, loading: true });
@@ -81,6 +82,17 @@ function CRM({ ctx }) {
         React.createElement("div", { className: "s-num", style: { fontSize: 26 } }, s.num),
         React.createElement("div", { className: "s-lbl" }, s.lbl)))),
 
+    sched ? React.createElement(Scheduler, {
+      patient: sched.patient, work: sched.card.work,
+      onClose: () => setSched(null),
+      onPick: ev => {
+        const sc = CRM_STAGES.find(s => s.id === sched.card.stage);
+        addCalEvent({ day: ev.day, start: ev.start, dur: ev.dur, pid: ev.pid, name: ev.name, work: ev.work, color: sc ? sc.c : "#7C5CFF" });
+        setSched(null);
+        ctx.toast("Записан на приём: " + ev.name + " · " + (apptLabel(nextApptFor(ev.pid)) || ""));
+      }
+    }) : null,
+
     cards.length === 0 ? React.createElement(EmptyState, {
       tone: "card", icon: "filter", title: "Воронка пуста",
       sub: "Здесь появятся лиды и сделки — от первой заявки до завершённого случая. Онлайн-заявки с сайта попадают сюда автоматически, либо добавьте пациента вручную.",
@@ -118,6 +130,10 @@ function CRM({ ctx }) {
                     className: "fbtn", title: "AI-оценка сделки", style: { width: 28, height: 28, color: "var(--primary)" },
                     onClick: e => { e.stopPropagation(); scoreDeal(card, stage); }
                   }, advice && advice.cardId === card.id && advice.loading ? "…" : React.createElement(Icon, { name: "sparkle", size: 14 })),
+                  React.createElement("button", {
+                    className: "fbtn", title: "Записать на приём", style: { width: 28, height: 28 },
+                    onClick: e => { e.stopPropagation(); setSched({ card: card, patient: PATIENTS.find(x => x.id === card.pid) || { id: card.pid, name: card.name, color: card.color } }); }
+                  }, React.createElement(Icon, { name: "calendar", size: 14 })),
                   stage.id !== "done" ? React.createElement("button", {
                     className: "fbtn", title: "Продвинуть", style: { width: 28, height: 28 },
                     onClick: e => { e.stopPropagation(); advance(card); }
@@ -126,7 +142,10 @@ function CRM({ ctx }) {
                 React.createElement("div", { className: "kc-foot" },
                   React.createElement("span", { className: "kc-val", style: { color: stage.c } }, fmt(card.val)),
                   React.createElement("span", { style: { fontSize: 11, color: "var(--ink-4)", fontWeight: 600 } }, card.prob + "%"),
-                  React.createElement("span", { className: "kc-date" }, card.date)),
+                  React.createElement("span", { className: "kc-date", title: nextApptFor(card.pid) ? "Запланированный приём" : "Приём не назначен",
+                    style: nextApptFor(card.pid) ? { color: "var(--good)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 } : { color: "var(--ink-4)" } },
+                    nextApptFor(card.pid) ? React.createElement(Icon, { name: "calendar", size: 11 }) : null,
+                    apptLabel(nextApptFor(card.pid)) || "не записан")),
                 advice && advice.cardId === card.id && !advice.loading ? React.createElement("div", {
                   onClick: e => e.stopPropagation(),
                   style: { marginTop: 9, padding: "9px 11px", borderRadius: 10, background: "var(--primary-tint)", fontSize: 12, lineHeight: 1.5, color: "var(--primary-700)", cursor: "default" } },
