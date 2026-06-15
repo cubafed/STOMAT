@@ -49,7 +49,7 @@
     return out;
   }
 
-  function complete(model, messages, maxTokens) {
+  function complete(model, messages, maxTokens, effort) {
     var viaProxy = usingProxy();
     if (!viaProxy && !getKey()) return Promise.reject(new Error("AI не подключён — задайте ключ или прокси в Настройках"));
     messages = injectSys(messages);
@@ -63,7 +63,7 @@
     var body = { model: model, messages: messages };
     if (newGen) {
       body.max_completion_tokens = maxTokens || 700;
-      if (!isChat) body.reasoning_effort = "minimal";
+      if (!isChat) body.reasoning_effort = effort || "minimal";
     } else {
       body.max_tokens = maxTokens || 700;
       body.temperature = 0.4;
@@ -162,6 +162,7 @@
         role: "user", content: [
           { type: "text", text:
             "Проанализируй стоматологический рентген и размечай находки с ТОЧНЫМИ координатами рамок.\n\n" +
+            "ГЛАВНОЕ ПРАВИЛО: ищи ПАТОЛОГИЮ (кариес, периапикальные очаги, убыль кости/периодонтит, резорбция, кисты, ретенция). НЕ перечисляй каждую коронку, имплант, пломбу, мост или абатмент как находку! Существующую реставрацию (type=resto) указывай ТОЛЬКО если с ней проблема (вторичный кариес под ней, нависающий край, скол, негерметичность, периимплантит). Здоровый восстановленный зуб — ПРОПУСКАЙ. Лучше 3-5 точных находок патологии, чем 20 «реставраций».\n\n" +
             "СИСТЕМА КООРДИНАТ (критично!): изображение — сетка 100×100. x: 0 — левый край, 100 — правый. y: 0 — самый ВЕРХ, 100 — самый НИЗ. box.x/box.y — ЛЕВЫЙ ВЕРХНИЙ угол рамки в этих процентах; w/h — её ширина/высота в процентах.\n\n" +
             "АНАТОМИЧЕСКАЯ КАРТА (как ориентироваться):\n" +
             "• Панорама-ОПТГ: ВЕРХНЯЯ челюсть (зубы 1x, 2x) — в верхней половине; НИЖНЯЯ (3x, 4x) — в нижней. Линия смыкания зубов (окклюзия) — примерно по центру по вертикали.\n" +
@@ -182,7 +183,7 @@
           { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
         ]
       }
-    ], 2200).then(parseFindings);
+    ], 4000, "medium").then(parseFindings);
   }
 
   /* Парсер команд для ⌘K (общая модель — GPT-4o):
