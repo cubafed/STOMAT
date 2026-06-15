@@ -302,6 +302,7 @@ input,select{font-family:inherit}
     } catch (e) {}
   }
   var hasDB = window.RadixDB && RadixDB.configured();
+  if (hasDB) RadixDB.init(); // заранее поднимаем клиент Supabase, пока заполняется форма
   function val(id) { var n = document.getElementById(id); return n ? n.value.trim() : ""; }
   function go() { location.href = "Продукт МВП.html"; }
   function busy(btn, on, txt) { if (!btn) return; btn.style.opacity = on ? ".6" : ""; btn.style.pointerEvents = on ? "none" : ""; if (txt) btn.firstChild && (btn.childNodes[0].nodeValue = txt); }
@@ -313,7 +314,8 @@ input,select{font-family:inherit}
     if (!hasDB) return; // локальный режим — просто переход по href
     e.preventDefault();
     busy(loginBtn, true, "Вход… ");
-    RadixDB.signIn(val("loginEmail"), val("loginPass"))
+    RadixDB.init()
+      .then(function () { return RadixDB.signIn(val("loginEmail"), val("loginPass")); })
       .then(go)
       .catch(function (err) { busy(loginBtn, false, "Войти "); alert("Не удалось войти: " + err.message); });
   });
@@ -332,7 +334,8 @@ input,select{font-family:inherit}
     var email = val("regEmail"), pass = val("regPass");
     if (!email || pass.length < 6) { alert("Укажите email и пароль (от 6 символов)"); return; }
     busy(fin, true, "Создаём… ");
-    RadixDB.signUp(email, pass, meta)
+    RadixDB.init()
+      .then(function () { return RadixDB.signUp(email, pass, meta); })
       .then(function () { return RadixDB.signIn(email, pass); }) // если подтверждение email выключено — сразу войдём
       .then(go)
       .catch(function (err) {

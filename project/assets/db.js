@@ -32,18 +32,27 @@
   }
   var curUser = null;
 
-  /* ---- инициализация: поднять клиент, восстановить сессию ---- */
+  /* ---- инициализация: поднять клиент, восстановить сессию ----
+     Идемпотентна: повторные вызовы возвращают тот же промис.
+     При сбое (CDN недоступен) промис сбрасывается, чтобы следующий
+     вызов мог попробовать заново. */
+  var initPromise = null;
   function init() {
+    if (initPromise) return initPromise;
     if (!configured()) { ready = true; return Promise.resolve(state()); }
-    return loadSDK().then(function () {
+    initPromise = loadSDK().then(function () {
       client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
       return client.auth.getSession();
     }).then(function (r) {
       var session = r && r.data ? r.data.session : null;
       return session ? afterLogin(session.user) : null;
+    }).then(function () {
+      ready = true; emit(); return state();
     }).catch(function (e) {
-      console.warn("Radix DB: офлайн-режим —", e.message); client = null;
-    }).then(function () { ready = true; emit(); return state(); });
+      console.warn("Radix DB: офлайн-режим —", e.message);
+      client = null; ready = true; initPromise = null; emit(); return state();
+    });
+    return initPromise;
   }
 
   function afterLogin(user) {
