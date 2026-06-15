@@ -6,7 +6,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base";
+  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy";
   var DEF_ANALYSIS = "gpt-5-nano", DEF_CHAT = "gpt-5-nano", DEF_VISION = "gpt-5-chat-latest";
   var DEF_BASE = "https://api.openai.com/v1";
 
@@ -18,25 +18,40 @@
   }
   function models() { return { analysis: ls(LS_AM) || DEF_ANALYSIS, chat: ls(LS_CM) || DEF_CHAT, vision: ls(LS_VM) || DEF_VISION }; }
   function getKey() { return ls(LS_KEY) || ""; }
-  function hasKey() { return !!getKey(); }
+  // Прокси (Supabase Edge Function): ключ живёт на сервере, браузер ключа не знает
+  function proxyUrl() { return (ls(LS_PROXY) || "").replace(/\/+$/, ""); }
+  function usingProxy() { return !!proxyUrl(); }
+  function hasKey() { return !!getKey() || usingProxy(); }
   // База API: OpenAI по умолчанию; для прокси/шлюза (если ключ не sk-…) — задаётся в Настройках
   function baseUrl() { return (ls(LS_BASE) || DEF_BASE).replace(/\/+$/, ""); }
-  function configure(key, analysisModel, chatModel, visionModel, base) {
+  function configure(key, analysisModel, chatModel, visionModel, base, proxy) {
     ls(LS_KEY, key); ls(LS_AM, analysisModel); ls(LS_CM, chatModel);
     if (visionModel !== undefined) ls(LS_VM, visionModel);
     if (base !== undefined) ls(LS_BASE, base);
+    if (proxy !== undefined) ls(LS_PROXY, proxy);
   }
 
   function complete(model, messages, maxTokens) {
-    if (!hasKey()) return Promise.reject(new Error("Ключ API не задан — добавьте его в Настройках"));
+    var viaProxy = usingProxy();
+    if (!viaProxy && !getKey()) return Promise.reject(new Error("AI не подключён — задайте ключ или прокси в Настройках"));
     // gpt-5 / o-серия: max_completion_tokens вместо max_tokens, без кастомной temperature
     var newGen = /^(gpt-5|o\d)/i.test(model || "");
     var body = { model: model, messages: messages };
     if (newGen) { body.max_completion_tokens = maxTokens || 700; }
     else { body.max_tokens = maxTokens || 700; body.temperature = 0.4; }
-    return fetch(baseUrl() + "/chat/completions", {
+    var url, headers;
+    if (viaProxy) {
+      // Ходим в свою Edge Function; ключ OpenAI — на сервере, не в браузере
+      var anon = (window.RADIX_CFG || {}).supabaseAnonKey || "";
+      url = proxyUrl();
+      headers = { "Content-Type": "application/json", "apikey": anon, "Authorization": "Bearer " + anon };
+    } else {
+      url = baseUrl() + "/chat/completions";
+      headers = { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() };
+    }
+    return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() },
+      headers: headers,
       body: JSON.stringify(body)
     }).then(function (r) {
       if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) {
@@ -257,5 +272,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();

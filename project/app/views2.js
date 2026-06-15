@@ -415,14 +415,15 @@ function AISettingsCard({ ctx }) {
   const [cm, setCm] = useState(() => RadixAI.models().chat);
   const [vm, setVm] = useState(() => RadixAI.models().vision);
   const [base, setBase] = useState(() => RadixAI.baseUrl());
+  const [proxy, setProxy] = useState(() => RadixAI.proxyUrl());
   const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState(null); // null | "wait" | "ok" | "err: …"
   function save() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim());
-    ctx.toast(key.trim() ? "AI подключён — заключения и чат работают вживую" : "Ключ удалён — приложение в демо-режиме");
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim());
+    ctx.toast(RadixAI.hasKey() ? "AI подключён — заключения и анализ работают вживую" : "AI отключён — приложение в демо-режиме");
   }
   function check() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim());
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim());
     setTest("wait");
     RadixAI.ping().then(() => setTest("ok")).catch(e => setTest("err: " + e.message));
   }
@@ -441,6 +442,10 @@ function AISettingsCard({ ctx }) {
         React.createElement("label", { style: lbl }, "Адрес API"),
         React.createElement("input", { style: inp, value: base, onChange: e => setBase(e.target.value), placeholder: "https://api.openai.com/v1" }),
         React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Оставьте для OpenAI. Для прокси/шлюза (если ключ не в формате sk-…) укажите его базовый URL — запросы идут на «/chat/completions».")),
+      React.createElement("div", { style: { marginBottom: 14 } },
+        React.createElement("label", { style: lbl }, "Серверный прокси (рекомендуется)"),
+        React.createElement("input", { style: inp, value: proxy, onChange: e => setProxy(e.target.value), placeholder: "https://<проект>.supabase.co/functions/v1/ai-proxy" }),
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Если задан — запросы идут через вашу Supabase-функцию, а ключ хранится на сервере (не в браузере). Поля «Ключ API» и «Адрес API» при этом не нужны. Обходит CORS и геоблок.")),
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 } },
         React.createElement("div", null,
           React.createElement("label", { style: lbl }, "Анализ снимков (vision)"),
