@@ -6,7 +6,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy";
+  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy", LS_SYS = "radix_ai_sys";
   var DEF_ANALYSIS = "gpt-5-nano", DEF_CHAT = "gpt-5-nano", DEF_VISION = "gpt-5-chat-latest";
   var DEF_BASE = "https://api.openai.com/v1";
 
@@ -24,16 +24,35 @@
   function hasKey() { return !!getKey() || usingProxy(); }
   // База API: OpenAI по умолчанию; для прокси/шлюза (если ключ не sk-…) — задаётся в Настройках
   function baseUrl() { return (ls(LS_BASE) || DEF_BASE).replace(/\/+$/, ""); }
-  function configure(key, analysisModel, chatModel, visionModel, base, proxy) {
+  // Доп. инструкция клиники: подмешивается в системный промпт всех запросов
+  function getSys() { return ls(LS_SYS) || ""; }
+  function configure(key, analysisModel, chatModel, visionModel, base, proxy, sys) {
     ls(LS_KEY, key); ls(LS_AM, analysisModel); ls(LS_CM, chatModel);
     if (visionModel !== undefined) ls(LS_VM, visionModel);
     if (base !== undefined) ls(LS_BASE, base);
     if (proxy !== undefined) ls(LS_PROXY, proxy);
+    if (sys !== undefined) ls(LS_SYS, sys);
+  }
+
+  // Вставить доп.инструкцию врача в первый system-месседж (или добавить новый)
+  function injectSys(messages) {
+    var extra = (ls(LS_SYS) || "").trim();
+    if (!extra) return messages;
+    var out = messages.slice(), done = false;
+    for (var i = 0; i < out.length; i++) {
+      if (out[i].role === "system" && typeof out[i].content === "string") {
+        out[i] = { role: "system", content: out[i].content + "\n\n[Дополнительная инструкция клиники — соблюдай её]\n" + extra };
+        done = true; break;
+      }
+    }
+    if (!done) out = [{ role: "system", content: extra }].concat(out);
+    return out;
   }
 
   function complete(model, messages, maxTokens) {
     var viaProxy = usingProxy();
     if (!viaProxy && !getKey()) return Promise.reject(new Error("AI не подключён — задайте ключ или прокси в Настройках"));
+    messages = injectSys(messages);
     // gpt-5 / o-серия: max_completion_tokens вместо max_tokens, без кастомной temperature.
     // Reasoning-модели (gpt-5, gpt-5-mini, gpt-5-nano, o*) при дефолтном reasoning_effort
     // тратят весь бюджет на «размышления» → пустой ответ. Ставим minimal, чтобы осталось
@@ -293,5 +312,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();

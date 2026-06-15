@@ -416,14 +416,15 @@ function AISettingsCard({ ctx }) {
   const [vm, setVm] = useState(() => RadixAI.models().vision);
   const [base, setBase] = useState(() => RadixAI.baseUrl());
   const [proxy, setProxy] = useState(() => RadixAI.proxyUrl());
+  const [sys, setSys] = useState(() => RadixAI.getSys());
   const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState(null); // null | "wait" | "ok" | "err: …"
   function save() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim());
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
     ctx.toast(RadixAI.hasKey() ? "AI подключён — заключения и анализ работают вживую" : "AI отключён — приложение в демо-режиме");
   }
   function check() {
-    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim());
+    RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
     setTest("wait");
     RadixAI.ping().then(() => setTest("ok")).catch(e => setTest("err: " + e.message));
   }
@@ -459,6 +460,10 @@ function AISettingsCard({ ctx }) {
           React.createElement("label", { style: lbl }, "Ассистент и чат"),
           React.createElement("input", { style: inp, value: cm, onChange: e => setCm(e.target.value) }),
           React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 5 } }, "Диалог, команды, скоринг"))),
+      React.createElement("div", { style: { marginBottom: 16 } },
+        React.createElement("label", { style: lbl }, "Спец-инструкция для ИИ (промпт клиники)"),
+        React.createElement("textarea", { style: Object.assign({}, inp, { minHeight: 96, resize: "vertical", lineHeight: 1.5 }), value: sys, onChange: e => setSys(e.target.value), placeholder: "Напр.: смотри снимок как опытный рентгенолог. Особое внимание — вторичный кариес под пломбами, периимплантит, пародонтальную убыль кости. Уверенность 90%+ ставь только при явных признаках, спорное помечай 50–69%. Не ставь окончательный диагноз — только находки для проверки врачом." }),
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Подмешивается в КАЖДЫЙ запрос к ИИ (анализ снимков, заключения, ассистент). Здесь вы задаёте тон, приоритеты и правила — это и есть «обучение» модели под вашу клинику без смены модели.")),
       React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" } },
         React.createElement("button", { className: "btn-app pri", onClick: save }, React.createElement(Icon, { name: "check", size: 16 }), "Сохранить"),
         React.createElement("button", { className: "btn-app gho", onClick: check, disabled: test === "wait" }, React.createElement(Icon, { name: "sparkle", size: 16 }), test === "wait" ? "Проверка…" : "Проверить соединение"),
