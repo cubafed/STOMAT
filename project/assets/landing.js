@@ -30,7 +30,7 @@
     viewer_model: "model МВП-Vision 3.1",
     float1_t: "Plan ready", float1_s: "estimate generated",
     float2_t: "AI assistant", float2_s: "answers your questions",
-    logos_label: "Trusted by clinics and private practices",
+    logos_label: "Everything for the visit — in one platform",
     pkg_eyebrow: "The МВП platform", pkg_h: "The whole digital visit — in one subscription",
     pkg_p: "One account unlocks every module: from AI image analysis to treatment plans and integration with your clinic.",
     pkg_cta1: "See pricing", pkg_cta2: "Open the product",

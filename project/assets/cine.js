@@ -447,7 +447,7 @@
   }
   function renderMarquee() {
     var box = $("#marquee"); if (!box) return;
-    var items = ["◈ ДентаЛюкс", "◇ Белая Линия", "✚ МедСтом", "◉ Аврора", "❖ Перфект Смайл", "✦ Дентал Про", "◐ Smile Lab"];
+    var items = ["◈ AI-детекция патологий", "◇ Карточка пациента", "✚ План лечения", "◉ Онлайн-запись", "❖ CRM-воронка", "✦ Аналитика клиники", "◐ Пародонтальная карта", "✶ Склад материалов", "◆ AI-ассистент"];
     var html = items.concat(items).map(function (s) { return '<span class="m-logo">' + s + '</span>'; }).join("");
     box.innerHTML = html;
   }
