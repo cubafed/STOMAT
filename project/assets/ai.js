@@ -121,7 +121,7 @@
     var j = JSON.parse(m[0]);
     var arr = j.findings || j["находки"] || [];
     if (!arr.length) return [];
-    return arr.slice(0, 12).map(function (f) {
+    return arr.slice(0, 20).map(function (f) {
       var b = f.box || {};
       function cl(v, max) { v = +v || 0; return Math.max(0, Math.min(max, v)); }
       return {
@@ -131,20 +131,31 @@
         pc: Math.max(50, Math.min(99, Math.round(+f.pc || 75))),
         severity: [1, 2, 3].indexOf(+f.severity) > -1 ? +f.severity : 2,
         mm: f.mm != null ? Math.round(+f.mm * 10) / 10 : null,
-        box: { x: cl(b.x, 88), y: cl(b.y, 84), w: Math.max(4, cl(b.w, 30)), h: Math.max(4, cl(b.h, 30)) }
+        box: { x: cl(b.x, 96), y: cl(b.y, 94), w: Math.max(2, cl(b.w, 45)), h: Math.max(2, cl(b.h, 45)) }
       };
     });
   }
+  var VISION_SYS = SYS + " Сейчас ты работаешь как врач-рентгенолог: читаешь снимок внимательно и систематически. Точность важнее количества — не выдумывай патологию там, где её не видно, и не пропускай явную.";
   function analyzeImage(dataUrl) {
     return complete(models().vision, [
-      { role: "system", content: SYS },
+      { role: "system", content: VISION_SYS },
       {
         role: "user", content: [
-          { type: "text", text: "Проанализируй этот стоматологический рентгеновский снимок. Найди патологии и верни СТРОГО JSON без пояснений:\n{\"findings\":[{\"type\":\"caries|cariesE|tartar|periap|periodontitis|resorption|cyst|crowding|impacted|resto\",\"tooth\":\"номер зуба по FDI или описание\",\"loc\":\"локализация по-русски\",\"pc\":число 50-99 (уверенность),\"severity\":1|2|3 (1 начальная, 2 умеренная, 3 выраженная),\"mm\":размер очага в мм (число, если применимо),\"box\":{\"x\":0-100,\"y\":0-100,\"w\":4-30,\"h\":4-30}}]}\nbox — рамка в процентах от размеров изображения (x,y — левый верхний угол). Типы: caries — кариес дентина, cariesE — кариес эмали, tartar — камень, periap — периапикальный очаг, periodontitis — периодонтит, resorption — резорбция корня, cyst — киста/гранулёма, crowding — скученность, impacted — ретенция зуба мудрости, resto — реставрация. Если патологий нет — пустой массив." },
-          { type: "image_url", image_url: { url: dataUrl } }
+          { type: "text", text:
+            "Проанализируй стоматологический рентгеновский снимок и размечай патологии.\n\n" +
+            "Порядок работы:\n" +
+            "1. Определи тип снимка (прицельный / bitewing / панорама-ОПТГ / КТ-срез).\n" +
+            "2. Осмотри СИСТЕМАТИЧЕСКИ по квадрантам FDI (1x верх-право, 2x верх-лево, 3x низ-лево, 4x низ-право), зуб за зубом.\n" +
+            "3. По каждому зубу оцени: коронку (кариес эмали/дентина, реставрации, вторичный кариес), корень (резорбция), периапикальные ткани (очаги, кисты/гранулёмы), периодонт (камень, убыль костной ткани), положение (скученность, ретенция).\n\n" +
+            "Калибровка уверенности pc: 90-99 — явные несомненные признаки; 70-89 — вероятно; 50-69 — под вопросом. Не завышай.\n" +
+            "box — рамка ТОЧНО по границам очага, в процентах от всего изображения (x,y — левый верхний угол; на панораме рамки узкие). severity: 1 начальная, 2 умеренная, 3 выраженная. mm — размер очага в мм или null.\n\n" +
+            "Верни СТРОГО JSON без пояснений:\n" +
+            "{\"findings\":[{\"type\":\"caries|cariesE|tartar|periap|periodontitis|resorption|cyst|crowding|impacted|resto\",\"tooth\":\"номер по FDI\",\"loc\":\"локализация по-русски\",\"pc\":50-99,\"severity\":1|2|3,\"mm\":число|null,\"box\":{\"x\":0-100,\"y\":0-100,\"w\":1-40,\"h\":1-40}}]}\n" +
+            "Типы: caries — кариес дентина, cariesE — кариес эмали, tartar — камень, periap — периапикальный очаг, periodontitis — периодонтит, resorption — резорбция корня, cyst — киста/гранулёма, crowding — скученность, impacted — ретенция, resto — реставрация/пломба/коронка. Патологий нет — пустой массив findings." },
+          { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
         ]
       }
-    ], 1400).then(parseFindings);
+    ], 2200).then(parseFindings);
   }
 
   /* Парсер команд для ⌘K (общая модель — GPT-4o):

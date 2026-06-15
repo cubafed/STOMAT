@@ -334,6 +334,7 @@ function Analysis({ ctx }) {
   const [decided, setDecided] = useState(() => RadixStore.get("decided_" + ctx.patientId, {}));
   const [compare, setCompare] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [imgAR, setImgAR] = useState(null); // соотношение сторон снимка — чтобы рамки находок совпадали с изображением
   const [contrast, setContrast] = useState(1);
   const [invert, setInvert] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -553,10 +554,10 @@ function Analysis({ ctx }) {
   rows = rows.slice().sort((a, b) => sort === "conf" ? b.f.pc - a.f.pc : (("" + a.f.tooth).localeCompare("" + b.f.tooth)));
   const visibleDets = findings.filter((f, i) => decided[i] !== "rej" && f.pc >= minPc && (filter === "all" || (f.type === "cariesE" ? "caries" : f.type) === filter));
 
-  const filmStyle = {
+  const filmStyle = Object.assign({
     transform: `scale(${zoom})`, transformOrigin: `${pan.x}% ${pan.y}%`,
     filter: `contrast(${contrast}) ${invert ? "invert(1) hue-rotate(180deg)" : ""}`
-  };
+  }, (img && imgAR) ? { inset: 0, margin: "auto", width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%", aspectRatio: String(imgAR) } : {});
 
   const filterChips = [
     ["all", "Все"], ["caries", "Кариес"], ["tartar", "Камень"], ["periap", "Эндо"], ["resto", "Пломбы"]
@@ -635,8 +636,8 @@ function Analysis({ ctx }) {
           React.createElement("div", { className: "rv-spacer" }),
           React.createElement("button", { className: "rv-tool" + (showDet ? " on" : ""), title: "Показать находки", onClick: () => setShowDet(s => !s) }, React.createElement(Icon, { name: "eye", size: 16 })),
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),
-          React.createElement("button", { className: "rv-tool", title: "Уменьшить", onClick: () => setZoom(z => Math.max(1, +(z - .25).toFixed(2))) }, React.createElement(Icon, { name: "ruler", size: 16 })),
-          React.createElement("button", { className: "rv-tool", title: "Увеличить", onClick: () => setZoom(z => Math.min(2.5, +(z + .25).toFixed(2))) }, React.createElement(Icon, { name: "zoom", size: 16 })),
+          React.createElement("button", { className: "rv-tool", title: "Уменьшить", onClick: () => setZoom(z => Math.max(1, +(z - .25).toFixed(2))) }, React.createElement("span", { style: { fontSize: 20, fontWeight: 800, lineHeight: 1 } }, "−")),
+          React.createElement("button", { className: "rv-tool", title: "Увеличить", onClick: () => setZoom(z => Math.min(4, +(z + .25).toFixed(2))) }, React.createElement("span", { style: { fontSize: 19, fontWeight: 800, lineHeight: 1 } }, "+")),
           React.createElement("button", { className: "rv-tool" + (measure ? " on" : ""), title: "Линейка (клик — две точки)", onClick: () => { setMeasure(m => !m); setMLine(null); } }, React.createElement(Icon, { name: "ruler", size: 16 })),
           React.createElement("button", { className: "rv-tool", title: "Сбросить вид", onClick: () => { resetView(); setMeasure(false); setMLine(null); } }, React.createElement(Icon, { name: "history", size: 16 }))),
         compare
@@ -644,7 +645,7 @@ function Analysis({ ctx }) {
           : React.createElement("div", { className: "rv-film", style: measure ? { cursor: "crosshair" } : null, onClick: onFilmClick, onMouseMove: e => { if (zoom > 1 && !measure) { const r = e.currentTarget.getBoundingClientRect(); setPan({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 }); } } },
               React.createElement("div", { className: "rv-film-inner", style: filmStyle },
                 img
-                  ? React.createElement("img", { src: img, alt: "Снимок", style: { width: "100%", height: "100%", objectFit: "cover", display: "block" } })
+                  ? React.createElement("img", { src: img, alt: "Снимок", onLoad: e => setImgAR(e.target.naturalWidth / e.target.naturalHeight), style: { width: "100%", height: "100%", objectFit: "contain", display: "block" } })
                   : React.createElement(Arch, patient.arch)),
               mLine ? React.createElement("svg", { style: { position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 7 }, viewBox: "0 0 100 100", preserveAspectRatio: "none" },
                 mLine.x2 != null ? React.createElement("line", { x1: mLine.x1, y1: mLine.y1, x2: mLine.x2, y2: mLine.y2, stroke: "#11AEC8", strokeWidth: 0.6, strokeDasharray: "1.5 1" }) : null,
