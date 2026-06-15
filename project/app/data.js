@@ -577,7 +577,7 @@ function analyticsData() {
       }
     }
   } catch (e) {}
-  const acceptPct = (acc + rej) ? Math.round(acc / (acc + rej) * 100) : 91;
+  const acceptPct = (acc + rej) ? Math.round(acc / (acc + rej) * 100) : 0;
   return {
     services, doctors, funnel, leads, won, conv, weighted, avgCheck,
     monthRevenue: monthPays.reduce((a, p) => a + p.amount, 0),
