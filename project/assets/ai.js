@@ -6,7 +6,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy", LS_SYS = "radix_ai_sys", LS_DETECT = "radix_detect_url";
+  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy", LS_SYS = "radix_ai_sys", LS_DETECT = "radix_detect_url", LS_RFKEY = "radix_rf_key", LS_RFMODEL = "radix_rf_model";
   var DEF_ANALYSIS = "gpt-5-nano", DEF_CHAT = "gpt-5-nano", DEF_VISION = "gpt-5-chat-latest";
   var DEF_BASE = "https://api.openai.com/v1";
 
@@ -200,9 +200,19 @@
     ], 4000, "medium").then(parseFindings);
   }
 
-  /* ---- Детектор Roboflow (специализированная CV-модель) ---- */
+  /* ---- Детектор Roboflow (специализированная CV-модель) ----
+     Два режима: прямой (ключ+модель → detect.roboflow.com из браузера, проще)
+     или через Edge Function (ключ на сервере). */
   function detectorUrl() { return (ls(LS_DETECT) || "").replace(/\/+$/, ""); }
-  function detectorOn() { return !!detectorUrl(); }
+  function roboKey() { return ls(LS_RFKEY) || ""; }
+  function roboModel() { return (ls(LS_RFMODEL) || "").replace(/^\/+|\/+$/g, ""); }
+  function detectorOn() { return !!detectorUrl() || (!!roboKey() && !!roboModel()); }
+  function setDetector(opts) {
+    opts = opts || {};
+    if (opts.url !== undefined) ls(LS_DETECT, opts.url);
+    if (opts.key !== undefined) ls(LS_RFKEY, opts.key);
+    if (opts.model !== undefined) ls(LS_RFMODEL, opts.model);
+  }
   // класс Roboflow → тип находки приложения; неизвестное → null (пропускаем)
   function mapClass(name) {
     var s = (name || "").toLowerCase();
@@ -220,12 +230,22 @@
   }
   // Прогнать снимок через детектор → массив находок в формате приложения
   function detect(dataUrl) {
-    var anon = (window.RADIX_CFG || {}).supabaseAnonKey || "";
-    return fetch(detectorUrl(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": anon, "Authorization": "Bearer " + anon },
-      body: JSON.stringify({ image: dataUrl, confidence: 25 })
-    }).then(function (r) {
+    var req;
+    if (detectorUrl()) {
+      // через Edge Function (ключ на сервере)
+      var anon = (window.RADIX_CFG || {}).supabaseAnonKey || "";
+      req = fetch(detectorUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": anon, "Authorization": "Bearer " + anon },
+        body: JSON.stringify({ image: dataUrl, confidence: 25 })
+      });
+    } else {
+      // прямой вызов Roboflow из браузера (ключ+модель в Настройках)
+      var b64 = dataUrl; var ci = b64.indexOf("base64,"); if (ci > -1) b64 = b64.slice(ci + 7);
+      var url = "https://detect.roboflow.com/" + roboModel() + "?api_key=" + encodeURIComponent(roboKey()) + "&format=json&confidence=25&overlap=40";
+      req = fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: b64 });
+    }
+    return req.then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status));
         return j;
@@ -384,5 +404,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, detect: detect, detectorUrl: detectorUrl, detectorOn: detectorOn, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, detect: detect, detectorUrl: detectorUrl, detectorOn: detectorOn, roboKey: roboKey, roboModel: roboModel, setDetector: setDetector, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();
