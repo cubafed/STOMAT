@@ -388,6 +388,7 @@ function Analysis({ ctx }) {
     return tpl.slice(0, n).map((f, i) => ({ ...f, box: { x: 10 + (i * 22) % 70, y: 18 + (i * 17) % 55, w: 11 + (i % 3) * 2, h: 13 + (i % 2) * 3 } }));
   }
   function analyzeOne(url) {
+    if (window.RadixAI && RadixAI.detectorOn()) return RadixAI.detect(url); // спец-детектор Roboflow (точные рамки)
     const live = window.RadixAI && RadixAI.hasKey();
     return live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 1400));
   }
@@ -633,7 +634,7 @@ function Analysis({ ctx }) {
       React.createElement("div", { className: "rv-stage" },
         React.createElement("div", { className: "rv-toolbar" },
           React.createElement("span", { className: "rv-chip" }, React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: scanning ? "var(--warn)" : "#18A06E", display: "inline-block" } }), scanning ? "Анализ…" : "Анализ завершён"),
-          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().vision + " vision" : "Демо-Vision") : "Радикс-Vision 3.1"),
+          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.detectorOn() ? "Roboflow детектор" : (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().vision + " vision" : "Демо-Vision")) : "Радикс-Vision 3.1"),
           React.createElement("div", { className: "rv-spacer" }),
           React.createElement("button", { className: "rv-tool" + (showDet ? " on" : ""), title: "Показать находки", onClick: () => setShowDet(s => !s) }, React.createElement(Icon, { name: "eye", size: 16 })),
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),

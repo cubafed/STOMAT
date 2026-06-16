@@ -6,7 +6,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy", LS_SYS = "radix_ai_sys";
+  var LS_KEY = "radix_ai_key", LS_AM = "radix_ai_model_analysis", LS_CM = "radix_ai_model_chat", LS_VM = "radix_ai_model_vision", LS_BASE = "radix_ai_base", LS_PROXY = "radix_ai_proxy", LS_SYS = "radix_ai_sys", LS_DETECT = "radix_detect_url";
   var DEF_ANALYSIS = "gpt-5-nano", DEF_CHAT = "gpt-5-nano", DEF_VISION = "gpt-5-chat-latest";
   var DEF_BASE = "https://api.openai.com/v1";
 
@@ -26,12 +26,13 @@
   function baseUrl() { return (ls(LS_BASE) || DEF_BASE).replace(/\/+$/, ""); }
   // Доп. инструкция клиники: подмешивается в системный промпт всех запросов
   function getSys() { return ls(LS_SYS) || ""; }
-  function configure(key, analysisModel, chatModel, visionModel, base, proxy, sys) {
+  function configure(key, analysisModel, chatModel, visionModel, base, proxy, sys, detectUrl) {
     ls(LS_KEY, key); ls(LS_AM, analysisModel); ls(LS_CM, chatModel);
     if (visionModel !== undefined) ls(LS_VM, visionModel);
     if (base !== undefined) ls(LS_BASE, base);
     if (proxy !== undefined) ls(LS_PROXY, proxy);
     if (sys !== undefined) ls(LS_SYS, sys);
+    if (detectUrl !== undefined) ls(LS_DETECT, detectUrl);
   }
 
   // Вставить доп.инструкцию врача в первый system-месседж (или добавить новый)
@@ -199,6 +200,55 @@
     ], 4000, "medium").then(parseFindings);
   }
 
+  /* ---- Детектор Roboflow (специализированная CV-модель) ---- */
+  function detectorUrl() { return (ls(LS_DETECT) || "").replace(/\/+$/, ""); }
+  function detectorOn() { return !!detectorUrl(); }
+  // класс Roboflow → тип находки приложения; неизвестное → null (пропускаем)
+  function mapClass(name) {
+    var s = (name || "").toLowerCase();
+    if (/enamel|эмал/.test(s) && /car|кари/.test(s)) return "cariesE";
+    if (/cari|cavit|decay|кари/.test(s)) return "caries";
+    if (/peri.?apical|peri.?ap|\bpai\b|очаг/.test(s)) return "periap";
+    if (/bone.?loss|periodont|пародонт|убыл/.test(s)) return "periodontitis";
+    if (/calculus|tartar|камень/.test(s)) return "tartar";
+    if (/resorption|резорб/.test(s)) return "resorption";
+    if (/cyst|granulom|киста|гранул/.test(s)) return "cyst";
+    if (/impact|retain|ретен/.test(s)) return "impacted";
+    if (/crowd|скучен/.test(s)) return "crowding";
+    if (/crown|fillin|restor|implant|пломб|коронк|реставр|имплан/.test(s)) return "resto";
+    return null;
+  }
+  // Прогнать снимок через детектор → массив находок в формате приложения
+  function detect(dataUrl) {
+    var anon = (window.RADIX_CFG || {}).supabaseAnonKey || "";
+    return fetch(detectorUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": anon, "Authorization": "Bearer " + anon },
+      body: JSON.stringify({ image: dataUrl, confidence: 25 })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status));
+        return j;
+      });
+    }).then(function (j) {
+      var iw = (j.image && j.image.width) || 1, ih = (j.image && j.image.height) || 1;
+      var preds = j.predictions || [];
+      function cl(v, max) { return Math.max(0, Math.min(max, v)); }
+      return preds.map(function (p) {
+        var type = mapClass(p.class);
+        if (!type) return null; // неизвестный класс (напр. просто «зуб») — не показываем как патологию
+        var w = (p.width || 0) / iw * 100, h = (p.height || 0) / ih * 100;
+        var x = ((p.x || 0) - (p.width || 0) / 2) / iw * 100, y = ((p.y || 0) - (p.height || 0) / 2) / ih * 100;
+        return {
+          type: type, tooth: p.tooth != null ? p.tooth : "—", loc: p.class || "",
+          pc: Math.max(50, Math.min(99, Math.round((p.confidence || 0) * 100))),
+          severity: 2, mm: null,
+          box: { x: cl(x, 98), y: cl(y, 98), w: Math.max(1, cl(w, 60)), h: Math.max(1, cl(h, 60)) }
+        };
+      }).filter(Boolean).slice(0, 30);
+    });
+  }
+
   /* Парсер команд для ⌘K (общая модель — GPT-4o):
      «открой план Анны», «покажи пациентов с кариесом» → действие интерфейса */
   function command(q, patients) {
@@ -334,5 +384,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, detect: detect, detectorUrl: detectorUrl, detectorOn: detectorOn, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();
