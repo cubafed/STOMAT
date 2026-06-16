@@ -282,6 +282,24 @@
     });
   }
 
+  /* Гибрид: точные рамки кариеса от Roboflow + широкая патология от LLM-vision.
+     Кариес от LLM выкидываем, если детектор его уже нашёл (берём точные рамки). */
+  function analyzeHybrid(dataUrl) {
+    var jobs = [detect(dataUrl).catch(function (e) { console.warn("detector:", e.message); return []; })];
+    if (hasKey()) jobs.push(analyzeImage(dataUrl).catch(function (e) { console.warn("vision LLM:", e.message); return []; }));
+    return Promise.all(jobs).then(function (res) {
+      var robo = res[0] || [], llm = res[1] || [];
+      var roboHasCaries = robo.some(function (f) { return f.type === "caries" || f.type === "cariesE"; });
+      var llmRest = llm.filter(function (f) {
+        if (roboHasCaries && (f.type === "caries" || f.type === "cariesE")) return false; // кариес — от детектора
+        return true;
+      });
+      var merged = robo.concat(llmRest);
+      if (!merged.length) throw new Error("Ни детектор, ни ИИ не дали находок");
+      return merged.slice(0, 40);
+    });
+  }
+
   /* Парсер команд для ⌘K (общая модель — GPT-4o):
      «открой план Анны», «покажи пациентов с кариесом» → действие интерфейса */
   function command(q, patients) {
@@ -417,5 +435,5 @@
     ], 350);
   }
 
-  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, detect: detect, detectorUrl: detectorUrl, detectorOn: detectorOn, roboKey: roboKey, roboModel: roboModel, setDetector: setDetector, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
+  window.RadixAI = { models: models, getKey: getKey, hasKey: hasKey, baseUrl: baseUrl, proxyUrl: proxyUrl, usingProxy: usingProxy, getSys: getSys, detect: detect, analyzeHybrid: analyzeHybrid, detectorUrl: detectorUrl, detectorOn: detectorOn, roboKey: roboKey, roboModel: roboModel, setDetector: setDetector, configure: configure, report: report, explain: explain, ask: ask, ping: ping, analyzeImage: analyzeImage, command: command, planAdvice: planAdvice, secondOpinion: secondOpinion, patientMessage: patientMessage, dynamics: dynamics, formatDictation: formatDictation, briefing: briefing, remind: remind, dealAdvice: dealAdvice, patientReportTexts: patientReportTexts, riskScore: riskScore, forecast: forecast };
 })();
