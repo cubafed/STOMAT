@@ -60,13 +60,17 @@
     var m = (model || "").toLowerCase();
     var newGen = /^(gpt-5|o\d)/.test(m);
     var isChat = m.indexOf("chat") > -1;
-    var body = { model: model, messages: messages };
-    if (newGen) {
-      body.max_completion_tokens = maxTokens || 700;
-      if (!isChat) body.reasoning_effort = effort || "minimal";
-    } else {
-      body.max_tokens = maxTokens || 700;
-      body.temperature = 0.4;
+    // level 0 — с reasoning_effort; level 1 — без него; level 2 — классический max_tokens
+    function buildBody(level) {
+      var b = { model: model, messages: messages };
+      if (newGen && level < 2) {
+        b.max_completion_tokens = maxTokens || 700;
+        if (!isChat && level === 0) b.reasoning_effort = effort || "minimal";
+      } else {
+        b.max_tokens = maxTokens || 700;
+        b.temperature = 0.4;
+      }
+      return b;
     }
     var url, headers;
     if (viaProxy) {
@@ -78,20 +82,29 @@
       url = baseUrl() + "/chat/completions";
       headers = { "Content-Type": "application/json", "Authorization": "Bearer " + getKey() };
     }
-    return fetch(url, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify(body)
-    }).then(function (r) {
-      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) {
-        throw new Error((j.error && j.error.message) || ("HTTP " + r.status));
+    function send(level) {
+      return fetch(url, { method: "POST", headers: headers, body: JSON.stringify(buildBody(level)) }).then(function (r) {
+        if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) {
+          var e = new Error((j.error && j.error.message) || ("HTTP " + r.status));
+          e.status = r.status; throw e;
+        });
+        return r.json();
       });
-      return r.json();
-    }).then(function (j) {
-      var c = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-      if (!c) throw new Error("Пустой ответ модели (" + model + ")");
-      return c.trim();
-    });
+    }
+    // Если апстрим/модель отклоняет параметры (reasoning_effort, max_completion_tokens
+    // и т.п.) — повторяем запрос упрощённым телом, чтобы работало с любой моделью.
+    function paramIssue(e) {
+      var s = (e && e.message || "").toLowerCase();
+      return (e && e.status === 400) || /reasoning|max_completion|max_tokens|unsupported|parameter|формат|format|invalid|temperature/.test(s);
+    }
+    return send(0)
+      .catch(function (e) { if (newGen && !isChat && paramIssue(e)) return send(1); throw e; })
+      .catch(function (e) { if (newGen && paramIssue(e)) return send(2); throw e; })
+      .then(function (j) {
+        var c = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+        if (!c) throw new Error("Пустой ответ модели (" + model + ")");
+        return c.trim();
+      });
   }
 
   function findingsBrief(patient) {
