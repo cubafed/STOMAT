@@ -425,7 +425,10 @@ function AISettingsCard({ ctx }) {
   function save() {
     RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
     RadixAI.setDetector({ key: rfKey.trim(), model: rfModel.trim(), url: det.trim() });
-    ctx.toast(RadixAI.hasKey() ? "AI подключён — заключения и анализ работают вживую" : "AI отключён — приложение в демо-режиме");
+    const on = [];
+    if (RadixAI.hasKey()) on.push("LLM (тексты)");
+    if (RadixAI.detectorOn()) on.push("детектор Roboflow");
+    ctx.toast(on.length ? "Подключено: " + on.join(" + ") : "AI отключён — демо-режим");
   }
   function check() {
     RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
