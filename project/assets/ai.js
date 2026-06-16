@@ -242,7 +242,11 @@
     } else {
       // прямой вызов Roboflow из браузера (ключ+модель в Настройках)
       var b64 = dataUrl; var ci = b64.indexOf("base64,"); if (ci > -1) b64 = b64.slice(ci + 7);
-      var url = "https://detect.roboflow.com/" + roboModel() + "?api_key=" + encodeURIComponent(roboKey()) + "&format=json&confidence=25&overlap=40";
+      // нормализуем id модели: нужен «проект/версия». Если вставили полный путь
+      // «воркспейс/проект/версия» — отрезаем префикс воркспейса.
+      var seg = roboModel().split("/").filter(Boolean);
+      if (seg.length > 2) seg = seg.slice(-2);
+      var url = "https://detect.roboflow.com/" + seg.join("/") + "?api_key=" + encodeURIComponent(roboKey()) + "&format=json&confidence=25&overlap=40";
       req = fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: b64 });
     }
     return req.then(function (r) {
