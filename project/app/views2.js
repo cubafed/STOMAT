@@ -457,7 +457,7 @@ function AISettingsCard({ ctx }) {
         React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Если задан — запросы идут через вашу Supabase-функцию, а ключ хранится на сервере (не в браузере). Поля «Ключ API» и «Адрес API» при этом не нужны. Обходит CORS и геоблок.")),
       React.createElement("div", { style: { padding: "12px 14px", border: "1px dashed var(--line)", borderRadius: 12, marginBottom: 14 } },
         React.createElement("div", { style: { fontWeight: 700, fontSize: 13.5, marginBottom: 2 } }, "Детектор Roboflow (точные рамки)"),
-        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginBottom: 10 } }, "Заполни оба поля — и рамки находок будет ставить специализированная CV-модель (точнее LLM). Тексты/заключения остаются на LLM. Пусто — рамки делает vision-модель."),
+        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginBottom: 10 } }, "Заполни оба поля — рамки находок ставит специализированная CV-модель (точнее LLM). Тексты/заключения остаются на LLM. Можно указать НЕСКОЛЬКО моделей через запятую (кариес, периапикальные очаги, убыль кости) — находки объединятся."),
         React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
           React.createElement("div", null,
             React.createElement("label", { style: lbl }, "Roboflow API-ключ"),

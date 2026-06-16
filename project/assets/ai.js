@@ -228,48 +228,57 @@
     if (/crown|fillin|restor|implant|пломб|коронк|реставр|имплан/.test(s)) return "resto";
     return null;
   }
-  // Прогнать снимок через детектор → массив находок в формате приложения
+  // Ответ Roboflow → массив находок в формате приложения
+  function mapPredictions(j) {
+    var iw = (j.image && j.image.width) || 1, ih = (j.image && j.image.height) || 1;
+    var preds = j.predictions || [];
+    function cl(v, max) { return Math.max(0, Math.min(max, v)); }
+    return preds.map(function (p) {
+      var type = mapClass(p.class);
+      if (!type) return null; // неизвестный класс (напр. просто «зуб») — пропускаем
+      var w = (p.width || 0) / iw * 100, h = (p.height || 0) / ih * 100;
+      var x = ((p.x || 0) - (p.width || 0) / 2) / iw * 100, y = ((p.y || 0) - (p.height || 0) / 2) / ih * 100;
+      return {
+        type: type, tooth: p.tooth != null ? p.tooth : "—", loc: p.class || "",
+        pc: Math.max(50, Math.min(99, Math.round((p.confidence || 0) * 100))),
+        severity: 2, mm: null,
+        box: { x: cl(x, 98), y: cl(y, 98), w: Math.max(1, cl(w, 60)), h: Math.max(1, cl(h, 60)) }
+      };
+    }).filter(Boolean);
+  }
+  function asJson(r) {
+    return r.json().catch(function () { return {}; }).then(function (j) {
+      if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status));
+      return j;
+    });
+  }
+  // Прогнать снимок через детектор → массив находок. В прямом режиме можно
+  // указать НЕСКОЛЬКО моделей через запятую/пробел — все прогоняются и объединяются.
   function detect(dataUrl) {
-    var req;
     if (detectorUrl()) {
-      // через Edge Function (ключ на сервере)
       var anon = (window.RADIX_CFG || {}).supabaseAnonKey || "";
-      req = fetch(detectorUrl(), {
+      return fetch(detectorUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json", "apikey": anon, "Authorization": "Bearer " + anon },
         body: JSON.stringify({ image: dataUrl, confidence: 25 })
-      });
-    } else {
-      // прямой вызов Roboflow из браузера (ключ+модель в Настройках)
-      var b64 = dataUrl; var ci = b64.indexOf("base64,"); if (ci > -1) b64 = b64.slice(ci + 7);
-      // нормализуем id модели: нужен «проект/версия». Если вставили полный путь
-      // «воркспейс/проект/версия» — отрезаем префикс воркспейса.
-      var seg = roboModel().split("/").filter(Boolean);
-      if (seg.length > 2) seg = seg.slice(-2);
-      var url = "https://detect.roboflow.com/" + seg.join("/") + "?api_key=" + encodeURIComponent(roboKey()) + "&format=json&confidence=25&overlap=40";
-      req = fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: b64 });
+      }).then(asJson).then(mapPredictions);
     }
-    return req.then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (j) {
-        if (!r.ok) throw new Error((j && j.error && (j.error.message || j.error)) || ("HTTP " + r.status));
-        return j;
-      });
-    }).then(function (j) {
-      var iw = (j.image && j.image.width) || 1, ih = (j.image && j.image.height) || 1;
-      var preds = j.predictions || [];
-      function cl(v, max) { return Math.max(0, Math.min(max, v)); }
-      return preds.map(function (p) {
-        var type = mapClass(p.class);
-        if (!type) return null; // неизвестный класс (напр. просто «зуб») — не показываем как патологию
-        var w = (p.width || 0) / iw * 100, h = (p.height || 0) / ih * 100;
-        var x = ((p.x || 0) - (p.width || 0) / 2) / iw * 100, y = ((p.y || 0) - (p.height || 0) / 2) / ih * 100;
-        return {
-          type: type, tooth: p.tooth != null ? p.tooth : "—", loc: p.class || "",
-          pc: Math.max(50, Math.min(99, Math.round((p.confidence || 0) * 100))),
-          severity: 2, mm: null,
-          box: { x: cl(x, 98), y: cl(y, 98), w: Math.max(1, cl(w, 60)), h: Math.max(1, cl(h, 60)) }
-        };
-      }).filter(Boolean).slice(0, 30);
+    var b64 = dataUrl; var ci = b64.indexOf("base64,"); if (ci > -1) b64 = b64.slice(ci + 7);
+    var key = roboKey();
+    var models = roboModel().split(/[\s,;]+/).filter(Boolean).map(function (m) {
+      var s = m.split("/").filter(Boolean); if (s.length > 2) s = s.slice(-2); return s.join("/");
+    });
+    if (!models.length) return Promise.reject(new Error("Не задана модель Roboflow"));
+    var calls = models.map(function (mp) {
+      var url = "https://detect.roboflow.com/" + mp + "?api_key=" + encodeURIComponent(key) + "&format=json&confidence=25&overlap=40";
+      return fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: b64 })
+        .then(asJson).then(mapPredictions)
+        .catch(function (e) { console.warn("Roboflow [" + mp + "]:", e.message); return []; }); // одна модель не валит остальные
+    });
+    return Promise.all(calls).then(function (arrs) {
+      var all = [].concat.apply([], arrs);
+      if (!all.length) throw new Error("Детектор не вернул находок (проверьте модель/снимок)");
+      return all.slice(0, 40);
     });
   }
 
