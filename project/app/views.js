@@ -629,6 +629,18 @@ function Analysis({ ctx }) {
         React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 9, padding: "9px 15px", borderRadius: 999, background: s[3], color: s[2], fontWeight: 600, fontSize: 13.5 } },
           React.createElement("span", { style: { width: 9, height: 9, borderRadius: "50%", background: s[2] } }), s[0], React.createElement("b", { style: { fontFamily: "var(--font-display)" } }, s[1])))),
 
+    // Карта зубов — главный визуал: подсветка проблемных зубов
+    img ? React.createElement("div", { style: { marginBottom: 16 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" } },
+        React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "tooth", size: 18 })),
+        React.createElement("h3", { style: { fontFamily: "var(--font-display)", fontSize: 17 } }, "Карта зубов"),
+        React.createElement("span", { style: { fontSize: 13, color: "var(--ink-3)" } }, "подсвечены проблемные зубы — кликните по зубу")),
+      React.createElement(ToothChart, {
+        findings: visibleDets,
+        hot: (hot > -1 && findings[hot]) ? toothNum(findings[hot].tooth) : null,
+        onTooth: (n) => { const i = findings.findIndex(f => toothNum(f.tooth) === n); if (i > -1) setHot(i); }
+      })) : null,
+
     React.createElement("div", { className: "rv card", style: { overflow: "hidden" } },
       // STAGE
       React.createElement("div", { className: "rv-stage" },
@@ -655,11 +667,7 @@ function Analysis({ ctx }) {
                   mLine.x2 != null ? React.createElement("line", { x1: mLine.x1, y1: mLine.y1, x2: mLine.x2, y2: mLine.y2, stroke: "#11AEC8", strokeWidth: 0.6, strokeDasharray: "1.5 1" }) : null,
                   React.createElement("circle", { cx: mLine.x1, cy: mLine.y1, r: 1, fill: "#11AEC8" }),
                   mLine.x2 != null ? React.createElement("circle", { cx: mLine.x2, cy: mLine.y2, r: 1, fill: "#11AEC8" }) : null) : null,
-                showDet && !scanning ? React.createElement("div", { className: "det-layer" }, visibleDets.map((f) => {
-                  const oi = findings.indexOf(f); const info = findingInfo(f);
-                  return React.createElement("div", { key: oi, className: "det" + (hot === oi ? " hot" : ""), style: { left: f.box.x + "%", top: f.box.y + "%", width: f.box.w + "%", height: f.box.h + "%", "--c": info.c }, onMouseEnter: () => setHot(oi), onMouseLeave: () => setHot(-1) },
-                    React.createElement("div", { className: "box" }),
-                    React.createElement("div", { className: "lbl" }, info.label.split(" ")[0], React.createElement("span", { className: "pc" }, f.pc + "%"))); })) : null),
+                null),
               measure ? React.createElement("div", { style: { position: "absolute", top: 10, left: 10, zIndex: 8, background: "rgba(10,15,31,.7)", color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 8 } },
                 mPct != null ? "Длина: " + mPct + "% кадра" : (mLine ? "Кликните вторую точку" : "Кликните первую точку")) : null,
               React.createElement("div", { className: "rv-zoomhint" }, zoom > 1 ? "Зум " + zoom.toFixed(2) + "× · двигайте мышью" : "Кнопками + / − приблизьте"))),

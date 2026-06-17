@@ -91,16 +91,10 @@
       '<rect y="155" width="680" height="10" fill="rgba(8,11,22,.7)"/></svg>';
   }
   function xrayHTML(img, findings) {
-    var boxes = findings.map(function (f) {
-      if (!f.box) return "";
-      var c = (f.info && f.info.c) || "#FF5A36";
-      var label = ((f.info && f.info.label) || f.type).split(" ")[0];
-      return '<div style="position:absolute;left:' + f.box.x + '%;top:' + f.box.y + '%;width:' + f.box.w + '%;height:' + f.box.h + '%;border:2px solid ' + c + ';border-radius:7px;box-shadow:0 0 14px -2px ' + c + '">' +
-        '<span style="position:absolute;top:-19px;left:-2px;background:' + c + ';color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap">' + esc(label) + ' · зуб ' + esc(f.tooth) + '</span></div>';
-    }).join("");
+    // Снимок — как доказательство, БЕЗ рамок (проблемные зубы показывает карта зубов ниже)
     return '<div style="position:relative;border-radius:16px;overflow:hidden;aspect-ratio:680/320;background:#0c1122">' +
-      (img ? '<img src="' + img + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">' : archSchemaSVG(findings)) +
-      boxes + '</div>';
+      (img ? '<img src="' + img + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">' : archSchemaSVG(findings)) +
+      '</div>';
   }
 
   /* ---------- таймлайн лечения ---------- */
@@ -304,7 +298,8 @@
       '<h1 style="margin:8px 0 6px;font-size:24px">' + esc(d.patient.name) + '</h1>' +
       '<div class="muted">' + ruDate(new Date()) + ' · врач: ' + esc(d.doctor || "—") + (d.img ? ' · загруженный снимок · vision-анализ' : ' · bitewing · архивный снимок') + '</div></div>' +
       '<div style="text-align:right" class="muted">Находок: <b style="color:#14110C;font-size:18px;font-family:Unbounded,sans-serif">' + findings.length + '</b></div></div></div>';
-    h += '<div class="card"><h2><span class="n">1</span>Снимок с разметкой</h2>' + xrayHTML(d.img, findings) + '</div>';
+    h += '<div class="card"><h2><span class="n">1</span>Снимок и карта зубов</h2>' + xrayHTML(d.img, findings) +
+      '<div style="margin:18px 0 4px;text-align:center">' + formulaSVG(findings) + '</div></div>';
     var SEVL = { 1: "начальная", 2: "умеренная", 3: "выраженная" };
   h += '<div class="card"><h2><span class="n">2</span>Находки</h2><table><tr><th>Зуб</th><th>Находка</th><th>Стадия</th><th>Размер</th><th>Локализация</th><th class="r">Уверенность ИИ</th></tr>' +
       findings.map(function (f) {

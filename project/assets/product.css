@@ -203,6 +203,26 @@ img, svg { display: block; max-width: 100%; }
 .tooth-cell svg { width: 24px; height: 24px; }
 .tooth-cell .tnum { position: absolute; bottom: 3px; right: 5px; font-size: 9px; color: var(--ink-4); font-weight: 600; }
 
+/* ---------- одонтограмма (карта зубов) ---------- */
+.odo { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px 20px; box-shadow: var(--sh-sm); }
+.odo-lbl { font-size: 11.5px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 2px 0 8px; }
+.odo-arch { display: grid; grid-template-columns: repeat(16, 1fr); gap: 5px; }
+.odo-arch + .odo-arch { margin-top: 6px; }
+.odo-cell { aspect-ratio: 1; border: 1.5px solid var(--line); border-radius: 9px; display: grid; place-items: center; background: #fff; position: relative; transition: all .2s var(--ease); color: var(--ink-4); cursor: pointer; }
+.odo-cell svg { width: 20px; height: 20px; }
+.odo-cell:hover { transform: translateY(-2px); box-shadow: var(--sh-sm); }
+.odo-cell.on { color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.odo-cell.hot { transform: translateY(-3px) scale(1.1); box-shadow: 0 0 0 2px var(--c), var(--sh-md); z-index: 2; }
+.odo-cell .odo-num { position: absolute; bottom: 2px; right: 3px; font-size: 8px; font-weight: 700; color: var(--ink-4); }
+.odo-cell .odo-sev { position: absolute; top: -6px; left: -6px; width: 15px; height: 15px; border-radius: 50%; color: #fff; font-size: 9px; font-weight: 800; display: grid; place-items: center; box-shadow: var(--sh-sm); }
+.odo-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.odo-leg { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+.odo-leg i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+.odo-empty { font-size: 13px; color: var(--ink-3); margin-top: 10px; }
+body.dark .odo { background: var(--bg-mist); }
+body.dark .odo-cell { background: var(--bg-soft); }
+@media (max-width: 760px) { .odo-arch { grid-template-columns: repeat(16, 24px); overflow-x: auto; } }
+
 /* ---------- RADIOGRAPH viewer (improved) ---------- */
 .rv { display: grid; grid-template-columns: 1fr 340px; gap: 0; }
 .rv-stage { background: linear-gradient(160deg, #141319, #0b0b0e); position: relative; border-radius: var(--r-lg) 0 0 var(--r-lg); padding: 18px; min-height: 480px; display: flex; flex-direction: column; }

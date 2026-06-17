@@ -52,26 +52,50 @@ function BeforeAfter({ before, after, tagBefore = "До лечения", tagAfte
 }
 
 /* Tooth chart (16 cells) reflecting findings state */
-function ToothChart({ patient, onTooth }) {
+/* Номер зуба (FDI) из находки: число, строка «36», диапазон «31-41» → int|null */
+function toothNum(t) {
+  if (typeof t === "number") return t;
+  if (t == null) return null;
+  var m = String(t).match(/\d{1,2}/);
+  return m ? +m[0] : null;
+}
+
+/* Одонтограмма: карта зубов FDI с подсветкой проблемных. findings — массив
+   находок (или patient.findings). hot — номер зуба для акцента. */
+function ToothChart({ patient, findings, onTooth, hot }) {
+  const list = findings || (patient && patient.findings) || [];
   const upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
   const lower = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
-  const map = {};
-  patient.findings.forEach(f => { if (typeof f.tooth === "number") map[f.tooth] = findingInfo(f); });
+  const map = {}; // tooth -> { info, sev }
+  const legend = []; const seen = {};
+  list.forEach(f => {
+    const info = findingInfo(f); const sev = f.severity || 2;
+    if (!seen[info.label]) { seen[info.label] = 1; legend.push(info); }
+    const n = toothNum(f.tooth); if (n == null) return;
+    if (!map[n] || sev > map[n].sev) map[n] = { info, sev, label: info.label };
+  });
   function cell(n) {
-    const info = map[n];
-    const color = info ? info.c : "#c2cadb";
+    const d = map[n];
+    const c = d ? d.info.c : null;
     return React.createElement("button", {
-      key: n, className: "tooth-cell", style: { color }, title: info ? info.label + " · " + n : "Зуб " + n,
-      onClick: () => onTooth && onTooth(n, info)
+      key: n, className: "odo-cell" + (d ? " on" : "") + (hot === n ? " hot" : ""),
+      style: d ? { "--c": c, background: d.info.tint || "#fff", borderColor: c } : null,
+      title: d ? d.label + " · зуб " + n : "Зуб " + n + " · норма",
+      onClick: () => onTooth && onTooth(n, d ? d.info : null)
     },
-      React.createElement(Icon, { name: "tooth", size: 24 }),
-      React.createElement("span", { className: "tnum", style: { color: "var(--ink-4)" } }, n));
+      React.createElement(Icon, { name: "tooth", size: 20 }),
+      d && d.sev >= 2 ? React.createElement("span", { className: "odo-sev", style: { background: c } }, d.sev === 3 ? "!" : "") : null,
+      React.createElement("span", { className: "odo-num", style: d ? { color: c } : null }, n));
   }
-  return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
-    React.createElement("div", { style: { fontSize: 12, color: "var(--ink-3)", fontWeight: 600 } }, "Верхняя челюсть"),
-    React.createElement("div", { className: "toothchart" }, upper.map(cell)),
-    React.createElement("div", { style: { fontSize: 12, color: "var(--ink-3)", fontWeight: 600, marginTop: 6 } }, "Нижняя челюсть"),
-    React.createElement("div", { className: "toothchart" }, lower.map(cell)));
+  return React.createElement("div", { className: "odo" },
+    React.createElement("div", { className: "odo-lbl" }, "Верхняя челюсть"),
+    React.createElement("div", { className: "odo-arch" }, upper.map(cell)),
+    React.createElement("div", { className: "odo-arch" }, lower.map(cell)),
+    React.createElement("div", { className: "odo-lbl", style: { marginTop: 6 } }, "Нижняя челюсть"),
+    legend.length
+      ? React.createElement("div", { className: "odo-legend" }, legend.map((info, i) =>
+          React.createElement("span", { key: i, className: "odo-leg" }, React.createElement("i", { style: { background: info.c } }), info.label)))
+      : React.createElement("div", { className: "odo-empty" }, "Находок нет — зубы в норме"));
 }
 
 /* Toast */
@@ -191,4 +215,4 @@ function Scheduler({ patient, work, onPick, onClose }) {
         React.createElement("button", { className: "btn-app gho", onClick: onClose }, "Отмена"))));
 }
 
-Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState, Scheduler });
+Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, toothNum, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState, Scheduler });
