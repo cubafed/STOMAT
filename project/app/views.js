@@ -216,7 +216,7 @@ function PatientDetail({ patient, ctx, onEdit }) {
       tab === "over" ? React.createElement(PatientOverview, { patient, ctx }) :
       tab === "shots" ? React.createElement(PatientShots, { patient, ctx }) :
       tab === "chart" ? React.createElement("div", null,
-        React.createElement(ToothChart, { patient, onTooth: (n, info) => setTooth({ n, info }) }),
+        React.createElement(JawMap, { findings: patient.findings, hot: tooth ? tooth.n : null, onTooth: (n, info) => setTooth({ n, info }) }),
         tooth ? React.createElement("div", { style: { marginTop: 18, padding: 16, borderRadius: 12, background: "var(--bg-soft)", border: "1px solid var(--line)" } },
           React.createElement("div", { style: { fontWeight: 700 } }, "Зуб " + tooth.n),
           React.createElement("div", { style: { color: "var(--ink-3)", fontSize: 14, marginTop: 4 } },
@@ -334,6 +334,7 @@ function Analysis({ ctx }) {
   const [decided, setDecided] = useState(() => RadixStore.get("decided_" + ctx.patientId, {}));
   const [compare, setCompare] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [jawMode, setJawMode] = useState("2d"); // карта челюсти: 2d | 3d
   const [contrast, setContrast] = useState(1);
   const [invert, setInvert] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -388,7 +389,6 @@ function Analysis({ ctx }) {
     return tpl.slice(0, n).map((f, i) => ({ ...f, box: { x: 10 + (i * 22) % 70, y: 18 + (i * 17) % 55, w: 11 + (i % 3) * 2, h: 13 + (i % 2) * 3 } }));
   }
   function analyzeOne(url) {
-    if (window.RadixAI && RadixAI.detectorOn()) return RadixAI.analyzeHybrid(url); // Roboflow (рамки) + ИИ (широкая патология)
     const live = window.RadixAI && RadixAI.hasKey();
     return live ? RadixAI.analyzeImage(url) : new Promise(res => setTimeout(() => res(demoVisionFinds()), 1400));
   }
@@ -629,24 +629,29 @@ function Analysis({ ctx }) {
         React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 9, padding: "9px 15px", borderRadius: 999, background: s[3], color: s[2], fontWeight: 600, fontSize: 13.5 } },
           React.createElement("span", { style: { width: 9, height: 9, borderRadius: "50%", background: s[2] } }), s[0], React.createElement("b", { style: { fontFamily: "var(--font-display)" } }, s[1])))),
 
-    // Карта зубов — главный визуал: подсветка проблемных зубов
-    img ? React.createElement("div", { style: { marginBottom: 16 } },
-      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" } },
+    // Карта челюсти — главный визуал: подсветка проблемных зубов (2D / 3D)
+    img ? React.createElement("div", { className: "jaw-card", style: { marginBottom: 16 } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" } },
         React.createElement("span", { style: { color: "var(--primary)" } }, React.createElement(Icon, { name: "tooth", size: 18 })),
-        React.createElement("h3", { style: { fontFamily: "var(--font-display)", fontSize: 17 } }, "Карта зубов"),
-        React.createElement("span", { style: { fontSize: 13, color: "var(--ink-3)" } }, "подсвечены проблемные зубы — кликните по зубу")),
-      React.createElement(ToothChart, {
-        findings: visibleDets,
-        hot: (hot > -1 && findings[hot]) ? toothNum(findings[hot].tooth) : null,
-        onTooth: (n) => { const i = findings.findIndex(f => toothNum(f.tooth) === n); if (i > -1) setHot(i); }
-      })) : null,
+        React.createElement("h3", { style: { fontFamily: "var(--font-display)", fontSize: 17 } }, "Карта челюсти"),
+        React.createElement("span", { style: { fontSize: 13, color: "var(--ink-3)" } }, "подсвечены проблемные зубы — кликните по зубу"),
+        React.createElement("div", { className: "seg", style: { marginLeft: "auto" } },
+          React.createElement("button", { className: jawMode === "2d" ? "on" : "", onClick: () => setJawMode("2d") }, "2D"),
+          React.createElement("button", { className: jawMode === "3d" ? "on" : "", onClick: () => setJawMode("3d") }, "3D"))),
+      jawMode === "3d"
+        ? React.createElement(JawMap3D, { findings: visibleDets })
+        : React.createElement(JawMap, {
+            findings: visibleDets,
+            hot: (hot > -1 && findings[hot]) ? toothNum(findings[hot].tooth) : null,
+            onTooth: (n) => { const i = findings.findIndex(f => toothNum(f.tooth) === n); if (i > -1) setHot(i); }
+          })) : null,
 
     React.createElement("div", { className: "rv card", style: { overflow: "hidden" } },
       // STAGE
       React.createElement("div", { className: "rv-stage" },
         React.createElement("div", { className: "rv-toolbar" },
           React.createElement("span", { className: "rv-chip" }, React.createElement("span", { style: { width: 8, height: 8, borderRadius: "50%", background: scanning ? "var(--warn)" : "#18A06E", display: "inline-block" } }), scanning ? "Анализ…" : "Анализ завершён"),
-          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.detectorOn() ? (RadixAI.hasKey() ? "Roboflow + ИИ" : "Roboflow детектор") : (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().vision + " vision" : "Демо-Vision")) : "Радикс-Vision 3.1"),
+          React.createElement("span", { className: "rv-chip" }, img ? (window.RadixAI && RadixAI.hasKey() ? RadixAI.models().vision + " vision" : "Демо-Vision") : "Радикс-Vision 3.1"),
           React.createElement("div", { className: "rv-spacer" }),
           React.createElement("button", { className: "rv-tool" + (showDet ? " on" : ""), title: "Показать находки", onClick: () => setShowDet(s => !s) }, React.createElement(Icon, { name: "eye", size: 16 })),
           React.createElement("button", { className: "rv-tool" + (invert ? " on" : ""), title: "Инверсия / контраст", onClick: () => setInvert(v => !v) }, React.createElement(Icon, { name: "contrast", size: 16 })),

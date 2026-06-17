@@ -223,6 +223,13 @@ body.dark .odo { background: var(--bg-mist); }
 body.dark .odo-cell { background: var(--bg-soft); }
 @media (max-width: 760px) { .odo-arch { grid-template-columns: repeat(16, 24px); overflow-x: auto; } }
 
+/* ---------- блок челюсти (2D/3D) ---------- */
+.jaw-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; box-shadow: var(--sh-sm); }
+body.dark .jaw-card { background: var(--bg-mist); }
+.jawmap svg { user-select: none; }
+.jaw3d { touch-action: none; }
+.jaw3d:active { cursor: grabbing; }
+
 /* ---------- RADIOGRAPH viewer (improved) ---------- */
 .rv { display: grid; grid-template-columns: 1fr 340px; gap: 0; }
 .rv-stage { background: linear-gradient(160deg, #141319, #0b0b0e); position: relative; border-radius: var(--r-lg) 0 0 var(--r-lg); padding: 18px; min-height: 480px; display: flex; flex-direction: column; }

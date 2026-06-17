@@ -417,22 +417,14 @@ function AISettingsCard({ ctx }) {
   const [base, setBase] = useState(() => RadixAI.baseUrl());
   const [proxy, setProxy] = useState(() => RadixAI.proxyUrl());
   const [sys, setSys] = useState(() => RadixAI.getSys());
-  const [rfKey, setRfKey] = useState(() => RadixAI.roboKey());
-  const [rfModel, setRfModel] = useState(() => RadixAI.roboModel());
-  const [det, setDet] = useState(() => RadixAI.detectorUrl());
   const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState(null); // null | "wait" | "ok" | "err: …"
   function save() {
     RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
-    RadixAI.setDetector({ key: rfKey.trim(), model: rfModel.trim(), url: det.trim() });
-    const on = [];
-    if (RadixAI.hasKey()) on.push("LLM (тексты)");
-    if (RadixAI.detectorOn()) on.push("детектор Roboflow");
-    ctx.toast(on.length ? "Подключено: " + on.join(" + ") : "AI отключён — демо-режим");
+    ctx.toast(RadixAI.hasKey() ? "AI подключён — анализ и заключения работают" : "AI отключён — демо-режим");
   }
   function check() {
     RadixAI.configure(key.trim(), am.trim(), cm.trim(), vm.trim(), base.trim(), proxy.trim(), sys.trim());
-    RadixAI.setDetector({ key: rfKey.trim(), model: rfModel.trim(), url: det.trim() });
     setTest("wait");
     RadixAI.ping().then(() => setTest("ok")).catch(e => setTest("err: " + e.message));
   }
@@ -455,18 +447,6 @@ function AISettingsCard({ ctx }) {
         React.createElement("label", { style: lbl }, "Серверный прокси (рекомендуется)"),
         React.createElement("input", { style: inp, value: proxy, onChange: e => setProxy(e.target.value), placeholder: "https://<проект>.supabase.co/functions/v1/ai-proxy" }),
         React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 6 } }, "Если задан — запросы идут через вашу Supabase-функцию, а ключ хранится на сервере (не в браузере). Поля «Ключ API» и «Адрес API» при этом не нужны. Обходит CORS и геоблок.")),
-      React.createElement("div", { style: { padding: "12px 14px", border: "1px dashed var(--line)", borderRadius: 12, marginBottom: 14 } },
-        React.createElement("div", { style: { fontWeight: 700, fontSize: 13.5, marginBottom: 2 } }, "Детектор Roboflow (точные рамки)"),
-        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginBottom: 10 } }, "Заполни оба поля — рамки находок ставит специализированная CV-модель (точнее LLM). Тексты/заключения остаются на LLM. Можно указать НЕСКОЛЬКО моделей через запятую (кариес, периапикальные очаги, убыль кости) — находки объединятся."),
-        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
-          React.createElement("div", null,
-            React.createElement("label", { style: lbl }, "Roboflow API-ключ"),
-            React.createElement("input", { style: inp, value: rfKey, onChange: e => setRfKey(e.target.value), placeholder: "app.roboflow.com/settings/api" })),
-          React.createElement("div", null,
-            React.createElement("label", { style: lbl }, "Модель (project/version)"),
-            React.createElement("input", { style: inp, value: rfModel, onChange: e => setRfModel(e.target.value), placeholder: "project-group13/dental-caries-detection-using-dl/3" }))),
-        React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", marginTop: 8 } }, "Продвинуто: если прямой вызов из браузера заблокирован (CORS) — вместо ключа/модели укажи Edge Function URL:"),
-        React.createElement("input", { style: Object.assign({}, inp, { marginTop: 6 }), value: det, onChange: e => setDet(e.target.value), placeholder: "https://<проект>.supabase.co/functions/v1/dental-detect" })),
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 } },
         React.createElement("div", null,
           React.createElement("label", { style: lbl }, "Анализ снимков (vision)"),

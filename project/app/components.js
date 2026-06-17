@@ -98,6 +98,117 @@ function ToothChart({ patient, findings, onTooth, hot }) {
       : React.createElement("div", { className: "odo-empty" }, "Находок нет — зубы в норме"));
 }
 
+/* Общая раскладка: находки → карта зуб→{info,sev} + легенда */
+function jawFindingMap(list) {
+  const map = {}, legend = [], seen = {};
+  (list || []).forEach(f => {
+    const info = findingInfo(f); const sev = f.severity || 2;
+    if (!seen[info.label]) { seen[info.label] = 1; legend.push(info); }
+    const n = toothNum(f.tooth); if (n == null) return;
+    if (!map[n] || sev > map[n].sev) map[n] = { info, sev };
+  });
+  return { map, legend };
+}
+function jawLegend(legend) {
+  return legend.length
+    ? React.createElement("div", { className: "odo-legend" }, legend.map((info, i) =>
+        React.createElement("span", { key: i, className: "odo-leg" }, React.createElement("i", { style: { background: info.c } }), info.label)))
+    : React.createElement("div", { className: "odo-empty" }, "Находок нет — зубы в норме");
+}
+const FDI_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+const FDI_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+
+/* 2D-челюсть: зубы по анатомической дуге (а не сеткой), подсветка проблемных */
+function JawMap({ findings, hot, onTooth }) {
+  const { map, legend } = jawFindingMap(findings);
+  const W = 480, H = 300, cx = W / 2, spanX = 200;
+  function arch(list, baseY, depth, lower) {
+    return list.map((n, i) => {
+      const t = (i / (list.length - 1)) * 2 - 1;            // -1..1
+      const x = cx + t * spanX;
+      const y = lower ? baseY - (1 - t * t) * depth : baseY + (1 - t * t) * depth;
+      const rot = (lower ? -1 : 1) * t * 46;
+      const d = map[n]; const c = d ? d.info.c : null;
+      return React.createElement("g", {
+        key: n, transform: "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") rotate(" + rot.toFixed(1) + ")",
+        style: { cursor: "pointer" }, onClick: () => onTooth && onTooth(n, d ? d.info : null)
+      },
+        React.createElement("rect", {
+          x: -9.5, y: -13, width: 19, height: 26, rx: 6,
+          fill: d ? (d.info.tint || "#fff") : "#fff",
+          stroke: d ? c : "#d6dae6", strokeWidth: d ? 2.2 : 1.2,
+          style: hot === n ? { filter: "drop-shadow(0 0 7px " + c + ")" } : null
+        }),
+        d && d.sev >= 3 ? React.createElement("circle", { cx: 8, cy: -12, r: 4.6, fill: c }) : null,
+        React.createElement("text", { x: 0, y: 4, textAnchor: "middle", fontSize: 8, fontWeight: 700, fill: d ? c : "#9aa0b0", transform: "rotate(" + (-rot).toFixed(1) + ")" }, n));
+    });
+  }
+  return React.createElement("div", { className: "jawmap" },
+    React.createElement("svg", { viewBox: "0 0 " + W + " " + H, style: { width: "100%", maxWidth: 600, display: "block", margin: "0 auto" } },
+      React.createElement("text", { x: cx, y: 13, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".1em" }, "ВЕРХНЯЯ"),
+      arch(FDI_UPPER, 42, 72, false),
+      arch(FDI_LOWER, H - 42, 72, true),
+      React.createElement("text", { x: cx, y: H - 4, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".1em" }, "НИЖНЯЯ")),
+    jawLegend(legend));
+}
+
+/* 3D-челюсть: процедурная дуга зубов на three.js, подсветка проблемных, drag-вращение */
+function JawMap3D({ findings }) {
+  const ref = useRef(null);
+  const { legend } = jawFindingMap(findings);
+  useEffect(() => {
+    let frame = 0, disposed = false, cleanup = function () {};
+    function boot(THREE) {
+      const el = ref.current; if (disposed || !el) return;
+      const W = el.clientWidth || 480, H = 320;
+      const scene = new THREE.Scene();
+      const cam = new THREE.PerspectiveCamera(45, W / H, 0.1, 100); cam.position.set(0, 1.5, 15);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      el.innerHTML = ""; el.appendChild(renderer.domElement);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+      const dl = new THREE.DirectionalLight(0xffffff, 0.85); dl.position.set(4, 9, 10); scene.add(dl);
+      const group = new THREE.Group(); group.rotation.x = -0.35; scene.add(group);
+      const map = {};
+      (findings || []).forEach(f => { const n = toothNum(f.tooth); if (n == null) return; const info = findingInfo(f); const sev = f.severity || 2; if (!map[n] || sev > map[n].sev) map[n] = { c: info.c, sev }; });
+      function makeGeo() { return THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.34, 0.7, 4, 10) : new THREE.CylinderGeometry(0.32, 0.26, 1.1, 12); }
+      function row(list, yBase) {
+        list.forEach((n, i) => {
+          const t = (i / (list.length - 1)) * 2 - 1;
+          const x = t * 5.4, z = (1 - t * t) * 3.4;
+          const d = map[n];
+          const col = new THREE.Color(d ? d.c : 0xe9ebf2);
+          const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5, metalness: 0.08, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.28) : new THREE.Color(0x000000) });
+          const m = new THREE.Mesh(makeGeo(), mat); m.position.set(x, yBase, z); group.add(m);
+        });
+      }
+      row(FDI_UPPER, 1.15); row(FDI_LOWER, -1.15);
+      let dragging = false, px = 0, py = 0;
+      const dom = renderer.domElement;
+      const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
+      const up = () => { dragging = false; };
+      const move = e => { if (!dragging) return; group.rotation.y += (e.clientX - px) * 0.01; group.rotation.x += (e.clientY - py) * 0.008; px = e.clientX; py = e.clientY; };
+      dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", up); window.addEventListener("pointermove", move);
+      function loop() { frame = requestAnimationFrame(loop); if (!dragging) group.rotation.y += 0.004; renderer.render(scene, cam); }
+      loop();
+      cleanup = function () { cancelAnimationFrame(frame); dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", up); window.removeEventListener("pointermove", move); try { renderer.dispose(); } catch (e) {} if (el) el.innerHTML = ""; };
+    }
+    if (window.THREE) boot(window.THREE);
+    else {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
+      s.onload = () => boot(window.THREE);
+      s.onerror = () => { if (ref.current) ref.current.innerHTML = '<div style="padding:40px;text-align:center;color:#9aa0b0;font-size:13px">3D-библиотека не загрузилась — переключитесь на 2D.</div>'; };
+      document.head.appendChild(s);
+    }
+    return () => { disposed = true; cleanup(); };
+  }, [findings]);
+  return React.createElement("div", null,
+    React.createElement("div", { ref, className: "jaw3d", style: { width: "100%", height: 320, borderRadius: 14, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 18%, #222b44, #0d1220)", cursor: "grab" } }),
+    React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", textAlign: "center", marginTop: 6 } }, "Зажмите и тяните, чтобы вращать"),
+    jawLegend(legend));
+}
+
 /* Toast */
 function Toast({ msg, show }) {
   return React.createElement("div", { className: "toast" + (show ? " show" : "") },
@@ -215,4 +326,4 @@ function Scheduler({ patient, work, onPick, onClose }) {
         React.createElement("button", { className: "btn-app gho", onClick: onClose }, "Отмена"))));
 }
 
-Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, toothNum, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState, Scheduler });
+Object.assign(window, { DetBox, Film, BeforeAfter, ToothChart, toothNum, JawMap, JawMap3D, Toast, Tag, Avatar, CardHead, Skeleton, EmptyState, Scheduler });
