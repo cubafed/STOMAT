@@ -118,37 +118,50 @@ function jawLegend(legend) {
 const FDI_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const FDI_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
 
-/* 2D-челюсть: зубы по анатомической дуге (а не сеткой), подсветка проблемных */
+/* полуширина зуба по типу (FDI единицы): резцы уже, моляры шире */
+function toothHalfW(n) {
+  const u = n % 10;
+  if (u <= 1) return 7;        // центральный резец
+  if (u === 2) return 6.5;     // боковой резец
+  if (u === 3) return 7;       // клык
+  if (u <= 5) return 8;        // премоляры
+  return 10.5;                 // моляры 6,7,8
+}
+
+/* 2D-челюсть: зубы (коронка+корень) по анатомической дуге, дёсны, подсветка */
 function JawMap({ findings, hot, onTooth }) {
   const { map, legend } = jawFindingMap(findings);
-  const W = 480, H = 300, cx = W / 2, spanX = 200;
-  function arch(list, baseY, depth, lower) {
+  const W = 540, H = 330, cx = W / 2, spanX = 232;
+  function layout(list, baseY, depth, lower) {
     return list.map((n, i) => {
-      const t = (i / (list.length - 1)) * 2 - 1;            // -1..1
-      const x = cx + t * spanX;
-      const y = lower ? baseY - (1 - t * t) * depth : baseY + (1 - t * t) * depth;
-      const rot = (lower ? -1 : 1) * t * 46;
-      const d = map[n]; const c = d ? d.info.c : null;
-      return React.createElement("g", {
-        key: n, transform: "translate(" + x.toFixed(1) + "," + y.toFixed(1) + ") rotate(" + rot.toFixed(1) + ")",
-        style: { cursor: "pointer" }, onClick: () => onTooth && onTooth(n, d ? d.info : null)
-      },
-        React.createElement("rect", {
-          x: -9.5, y: -13, width: 19, height: 26, rx: 6,
-          fill: d ? (d.info.tint || "#fff") : "#fff",
-          stroke: d ? c : "#d6dae6", strokeWidth: d ? 2.2 : 1.2,
-          style: hot === n ? { filter: "drop-shadow(0 0 7px " + c + ")" } : null
-        }),
-        d && d.sev >= 3 ? React.createElement("circle", { cx: 8, cy: -12, r: 4.6, fill: c }) : null,
-        React.createElement("text", { x: 0, y: 4, textAnchor: "middle", fontSize: 8, fontWeight: 700, fill: d ? c : "#9aa0b0", transform: "rotate(" + (-rot).toFixed(1) + ")" }, n));
+      const t = (i / (list.length - 1)) * 2 - 1;
+      return { n, t, lower, x: cx + t * spanX, y: lower ? baseY - (1 - t * t) * depth : baseY + (1 - t * t) * depth, rot: (lower ? -1 : 1) * t * 54 };
     });
   }
+  const up = layout(FDI_UPPER, 50, 80, false);
+  const lo = layout(FDI_LOWER, H - 50, 80, true);
+  const gum = pts => pts.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
+  function tooth(p) {
+    const d = map[p.n], c = d ? d.info.c : null, w = toothHalfW(p.n);
+    const crownH = 16, rootH = 16, rw = w * 0.72;
+    return React.createElement("g", { key: p.n, transform: "translate(" + p.x.toFixed(1) + "," + p.y.toFixed(1) + ")", style: { cursor: "pointer" }, onClick: () => onTooth && onTooth(p.n, d ? d.info : null) },
+      React.createElement("g", { transform: "rotate(" + p.rot.toFixed(1) + ") scale(1," + (p.lower ? -1 : 1) + ")" },
+        React.createElement("path", { d: "M " + (-rw) + " -2 L " + rw + " -2 L " + (w >= 9 ? rw * 0.5 : 0) + " " + (-rootH) + (w >= 9 ? " M " + (-rw * 0.5) + " -2 L " + (-rw * 0.5) + " " + (-rootH) : "") + " Z", fill: d ? c : "#e7e2d4", opacity: 0.8 }),
+        React.createElement("rect", { x: -w, y: -2, width: 2 * w, height: crownH, rx: 5.5, fill: d ? (d.info.tint || "#fff") : "url(#enamelG)", stroke: d ? c : "#cdd2de", strokeWidth: d ? 2 : 1, style: hot === p.n ? { filter: "drop-shadow(0 0 8px " + c + ")" } : null })),
+      d && d.sev >= 3 ? React.createElement("circle", { cx: w * 0.85, cy: p.lower ? 14 : -14, r: 4.4, fill: c }) : null,
+      React.createElement("text", { x: 0, y: p.lower ? (rootH + 13) : -(rootH + 8), textAnchor: "middle", fontSize: 8.5, fontWeight: 700, fill: d ? c : "#a7adbb" }, p.n));
+  }
   return React.createElement("div", { className: "jawmap" },
-    React.createElement("svg", { viewBox: "0 0 " + W + " " + H, style: { width: "100%", maxWidth: 600, display: "block", margin: "0 auto" } },
-      React.createElement("text", { x: cx, y: 13, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".1em" }, "ВЕРХНЯЯ"),
-      arch(FDI_UPPER, 42, 72, false),
-      arch(FDI_LOWER, H - 42, 72, true),
-      React.createElement("text", { x: cx, y: H - 4, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".1em" }, "НИЖНЯЯ")),
+    React.createElement("svg", { viewBox: "0 0 " + W + " " + H, style: { width: "100%", maxWidth: 640, display: "block", margin: "0 auto" } },
+      React.createElement("defs", null,
+        React.createElement("linearGradient", { id: "enamelG", x1: 0, y1: 0, x2: 0, y2: 1 },
+          React.createElement("stop", { offset: 0, stopColor: "#ffffff" }),
+          React.createElement("stop", { offset: 1, stopColor: "#eceef3" }))),
+      React.createElement("path", { d: gum(up), fill: "none", stroke: "#f1c2ca", strokeWidth: 16, strokeLinecap: "round", opacity: 0.45 }),
+      React.createElement("path", { d: gum(lo), fill: "none", stroke: "#f1c2ca", strokeWidth: 16, strokeLinecap: "round", opacity: 0.45 }),
+      React.createElement("text", { x: cx, y: 15, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".12em" }, "ВЕРХНЯЯ"),
+      up.map(tooth), lo.map(tooth),
+      React.createElement("text", { x: cx, y: H - 4, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".12em" }, "НИЖНЯЯ")),
     jawLegend(legend));
 }
 
@@ -166,23 +179,39 @@ function JawMap3D({ findings }) {
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       el.innerHTML = ""; el.appendChild(renderer.domElement);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-      const dl = new THREE.DirectionalLight(0xffffff, 0.85); dl.position.set(4, 9, 10); scene.add(dl);
-      const group = new THREE.Group(); group.rotation.x = -0.35; scene.add(group);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x39414f, 0.75));
+      const keyL = new THREE.DirectionalLight(0xffffff, 0.95); keyL.position.set(5, 9, 8); scene.add(keyL);
+      const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.45); rimL.position.set(-6, 3, -7); scene.add(rimL);
+      const group = new THREE.Group(); group.rotation.x = -0.32; scene.add(group);
       const map = {};
       (findings || []).forEach(f => { const n = toothNum(f.tooth); if (n == null) return; const info = findingInfo(f); const sev = f.severity || 2; if (!map[n] || sev > map[n].sev) map[n] = { c: info.c, sev }; });
-      function makeGeo() { return THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.34, 0.7, 4, 10) : new THREE.CylinderGeometry(0.32, 0.26, 1.1, 12); }
-      function row(list, yBase) {
+      const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
+      function makeTooth(n, d) {
+        const g = new THREE.Group(); const u = n % 10;
+        const wide = u >= 6 ? 1.3 : u === 3 ? 0.85 : u <= 2 ? 0.72 : 1.0;
+        const enamel = new PhysMat({ color: new THREE.Color(d ? d.c : 0xf3f1e9), roughness: 0.32, metalness: 0, clearcoat: 0.7, clearcoatRoughness: 0.35, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.22) : new THREE.Color(0x000000) });
+        const rootMat = new THREE.MeshStandardMaterial({ color: d ? new THREE.Color(d.c).multiplyScalar(0.82) : new THREE.Color(0xe6dfce), roughness: 0.78 });
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), enamel);
+        crown.scale.set(wide, 0.85, wide * 0.9); crown.position.y = 0.5; g.add(crown);
+        const roots = u >= 6 ? 2 : 1;
+        for (let r = 0; r < roots; r++) {
+          const root = new THREE.Mesh(new THREE.ConeGeometry(0.17 * wide, 1.05, 12), rootMat);
+          root.position.set(roots === 2 ? (r ? 0.2 * wide : -0.2 * wide) : 0, -0.32, 0);
+          root.rotation.z = Math.PI; g.add(root);
+        }
+        return g;
+      }
+      function row(list, yBase, upper) {
         list.forEach((n, i) => {
           const t = (i / (list.length - 1)) * 2 - 1;
-          const x = t * 5.4, z = (1 - t * t) * 3.4;
-          const d = map[n];
-          const col = new THREE.Color(d ? d.c : 0xe9ebf2);
-          const mat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5, metalness: 0.08, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.28) : new THREE.Color(0x000000) });
-          const m = new THREE.Mesh(makeGeo(), mat); m.position.set(x, yBase, z); group.add(m);
+          const g = makeTooth(n, map[n]);
+          g.position.set(t * 5.6, yBase, (1 - t * t) * 3.6);
+          if (upper) g.rotation.z = Math.PI;   // коронки вниз
+          g.rotation.y = -t * 0.5;             // лёгкий радиальный разворот
+          group.add(g);
         });
       }
-      row(FDI_UPPER, 1.15); row(FDI_LOWER, -1.15);
+      row(FDI_UPPER, 1.2, true); row(FDI_LOWER, -1.2, false);
       let dragging = false, px = 0, py = 0;
       const dom = renderer.domElement;
       const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
