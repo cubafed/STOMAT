@@ -195,9 +195,11 @@ function loadScriptOnce(src) {
 function ensureThree(needGltf) {
   return Promise.resolve()
     .then(function () { return window.THREE ? null : loadScriptOnce(THREE_BASE + "build/three.min.js"); })
-    .then(function () { return window.THREE.OrbitControls ? null : loadScriptOnce(THREE_BASE + "examples/js/controls/OrbitControls.js"); })
-    .then(function () { return window.THREE.RoomEnvironment ? null : loadScriptOnce(THREE_BASE + "examples/js/environments/RoomEnvironment.js"); })
-    .then(function () { return (!needGltf || window.THREE.GLTFLoader) ? null : loadScriptOnce(THREE_BASE + "examples/js/loaders/GLTFLoader.js"); })
+    .then(function () { return Promise.all([
+      window.THREE.OrbitControls ? null : loadScriptOnce(THREE_BASE + "examples/js/controls/OrbitControls.js").catch(function () { return null; }),
+      window.THREE.RoomEnvironment ? null : loadScriptOnce(THREE_BASE + "examples/js/environments/RoomEnvironment.js").catch(function () { return null; }),
+      (needGltf && !window.THREE.GLTFLoader) ? loadScriptOnce(THREE_BASE + "examples/js/loaders/GLTFLoader.js").catch(function () { return null; }) : null
+    ]); })
     .then(function () { return window.THREE; });
 }
 
@@ -252,12 +254,21 @@ function JawMap3D({ findings }) {
         row(FDI_UPPER, 1.05, true); row(FDI_LOWER, -1.05, false);
       }
 
-      let controls = null;
-      if (THREE.OrbitControls) { controls = new THREE.OrbitControls(cam, renderer.domElement); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 8; controls.maxDistance = 24; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, FWD - 1); }
+      let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
+      const dom = renderer.domElement;
+      if (THREE.OrbitControls) {
+        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 8; controls.maxDistance = 24; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, FWD - 1);
+      } else { // ручное вращение, если OrbitControls не загрузился
+        const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
+        const upE = () => { dragging = false; };
+        const mv = e => { if (!dragging) return; group.rotation.y += (e.clientX - px) * 0.01; group.rotation.x += (e.clientY - py) * 0.008; px = e.clientX; py = e.clientY; };
+        dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", upE); window.addEventListener("pointermove", mv);
+        cleanupExtra = () => { dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", upE); window.removeEventListener("pointermove", mv); };
+      }
       cam.lookAt(0, 0, FWD - 1);
-      function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); renderer.render(scene, cam); }
+      function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); else if (!dragging) group.rotation.y += 0.005; renderer.render(scene, cam); }
       loop();
-      cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
+      cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); cleanupExtra(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
 
       // .glb-модель поверх (если задана) — иначе процедурная челюсть
       if (JAW_GLB && THREE.GLTFLoader) {
