@@ -185,6 +185,7 @@ function JawMap({ findings, hot, onTooth }) {
 /* Загрузка three.js (UMD + examples/js — версия с глобальным THREE и аддонами) */
 var JAW_GLB = (typeof window !== "undefined" && window.RADIX_CFG && window.RADIX_CFG.jawModel) || "";
 var THREE_BASE = "https://cdn.jsdelivr.net/npm/three@0.137.5/";
+var TEETH_BASE = (typeof window !== "undefined" && window.RADIX_CFG && window.RADIX_CFG.teethBase) || "project/assets/models/teeth/";
 function loadScriptOnce(src) {
   return new Promise(function (res, rej) {
     if (Array.prototype.some.call(document.scripts, function (s) { return s.src === src; })) return res();
@@ -216,7 +217,7 @@ function JawMap3D({ findings }) {
       const el = ref.current; if (disposed || !el) return;
       const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 4, 14);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 3.2, 15);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
@@ -228,32 +229,60 @@ function JawMap3D({ findings }) {
       const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.4); rimL.position.set(-6, 3, -7); scene.add(rimL);
       const group = new THREE.Group(); group.rotation.x = -0.22; scene.add(group);
       const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      const SPAN = 6.2, DEPTH = 4.6, FWD = 1.2;
+      const SPAN = 5.6, DEPTH = 4.4, FWD = 1.2;
       const archZ = t => -(1 - t * t) * DEPTH + FWD;
       // дёсны — труба вдоль дуги
       function gum(yBase) {
         const pts = [];
         for (let i = 0; i <= 20; i++) { const t = i / 20 * 2 - 1; pts.push(new THREE.Vector3(t * SPAN, yBase, archZ(t))); }
-        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.62, 14, false);
-        return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe2929e, roughness: 0.85 }));
+        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.6, 16, false);
+        return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe09aa4, roughness: 0.82 }));
       }
-      // зубы — коронки, торчащие из десны к линии смыкания
-      function row(list, yGum, upper) {
-        list.forEach((n, i) => {
-          const t = (i / (list.length - 1)) * 2 - 1; const d = map[n]; const u = n % 10;
-          const wide = u >= 6 ? 1.4 : u === 3 ? 0.8 : u <= 2 ? 0.72 : 1.0;
-          const enamel = new PhysMat({ color: new THREE.Color(d ? d.c : 0xf4f2ea), roughness: 0.25, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.25, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.32) : new THREE.Color(0x000000) });
-          const m = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 16), enamel);
-          m.scale.set(wide, 1.15, wide * 0.92);
-          m.position.set(t * SPAN, yGum + (upper ? -0.62 : 0.62), archZ(t));
-          group.add(m);
-        });
+      // запасные «коронки» (если 3D-модели зубов не загрузятся)
+      function procTooth(n, yGum, upper, t) {
+        const d = map[n], u = n % 10;
+        const wide = u >= 6 ? 1.4 : u === 3 ? 0.8 : u <= 2 ? 0.72 : 1.0;
+        const enamel = new PhysMat({ color: new THREE.Color(d ? d.c : 0xf4f2ea), roughness: 0.25, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.25, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.32) : new THREE.Color(0x000000) });
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.46, 18, 14), enamel);
+        m.scale.set(wide, 1.15, wide * 0.92);
+        m.position.set(t * SPAN, yGum + (upper ? -0.6 : 0.6), archZ(t));
+        group.add(m);
       }
-      function buildProcedural() {
-        group.add(gum(1.05)); group.add(gum(-1.05));
-        row(FDI_UPPER, 1.05, true); row(FDI_LOWER, -1.05, false);
+      function placeProcedural() {
+        FDI_UPPER.forEach((n, i) => procTooth(n, 1.05, true, (i / 15) * 2 - 1));
+        FDI_LOWER.forEach((n, i) => procTooth(n, -1.05, false, (i / 15) * 2 - 1));
+      }
+      // нормализовать модель зуба: центр в 0, единичная высота
+      function normTooth(obj) {
+        const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+        obj.position.sub(center);
+        const h = size.y || size.x || size.z || 1; obj.scale.multiplyScalar(1 / h);
+        const wrap = new THREE.Group(); wrap.add(obj); return wrap;
+      }
+      // собрать реальную челюсть из анатомических моделей зубов
+      function placeReal(protos) {
+        const TS = 1.7, YUP = 0.5, YLO = -0.5, TILT = 0.15, RADIAL = 0.5;
+        function put(order, upper) {
+          order.forEach((n, i) => {
+            const file = (upper ? "u" : "l") + (n % 10) + ".glb"; const proto = protos[file]; if (!proto) return;
+            const t = (i / (order.length - 1)) * 2 - 1; const u = n % 10;
+            const wide = u >= 6 ? 1.35 : u === 3 ? 0.85 : u <= 2 ? 0.82 : 1.0;
+            const th = proto.clone(true);
+            th.scale.multiplyScalar(TS * wide);
+            const q = Math.floor(n / 10), mirror = (q === 1 || q === 4);
+            if (mirror) th.scale.x *= -1;
+            th.rotation.x = upper ? Math.PI - TILT : TILT;   // коронкой к линии смыкания
+            th.rotation.y = (mirror ? 1 : -1) * Math.abs(t) * RADIAL;
+            th.position.set(t * SPAN, upper ? YUP : YLO, archZ(t));
+            const d = map[n];
+            if (d) th.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.emissive = new THREE.Color(d.c); o.material.emissiveIntensity = 0.65; if (o.material.color) o.material.color.lerp(new THREE.Color(d.c), 0.55); } });
+            group.add(th);
+          });
+        }
+        put(FDI_UPPER, true); put(FDI_LOWER, false);
       }
 
+      group.add(gum(1.05)); group.add(gum(-1.05));   // дёсны всегда
       let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
       const dom = renderer.domElement;
       if (THREE.OrbitControls) {
@@ -270,32 +299,19 @@ function JawMap3D({ findings }) {
       loop();
       cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); cleanupExtra(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
 
-      // .glb-модель поверх (если задана) — иначе процедурная челюсть
-      if (JAW_GLB && THREE.GLTFLoader) {
-        new THREE.GLTFLoader().load(JAW_GLB, gltf => {
-          if (disposed) return;
-          while (group.children.length) group.remove(group.children[0]);
-          const model = gltf.scene;
-          const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-          const sc = 9 / Math.max(size.x, size.y, size.z); model.scale.setScalar(sc);
-          model.position.sub(center.multiplyScalar(sc));
-          const meshes = []; model.traverse(o => { if (o.isMesh) meshes.push(o); });
-          if (meshes.length >= 16) {
-            const cy = m => new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3());
-            const ys = meshes.map(m => cy(m).y), midY = (Math.max.apply(null, ys) + Math.min.apply(null, ys)) / 2;
-            const upM = [], loM = []; meshes.forEach((m, i) => (ys[i] >= midY ? upM : loM).push(m));
-            const sx = arr => arr.sort((a, b) => cy(a).x - cy(b).x);
-            sx(upM); sx(loM);
-            const hl = (arr, fdi) => arr.forEach((m, i) => { const d = map[fdi[Math.round(i / Math.max(1, arr.length - 1) * (fdi.length - 1))]]; if (d && m.material) { m.material = m.material.clone(); m.material.emissive = new THREE.Color(d.c); m.material.emissiveIntensity = 0.7; if (m.material.color) m.material.color = new THREE.Color(d.c); } });
-            hl(upM, FDI_UPPER); hl(loM, FDI_LOWER);
-          }
-          group.add(model);
-        }, undefined, () => { buildProcedural(); });
+      // собрать челюсть из 16 анатомических моделей зубов (запасной вариант — процедурная)
+      if (THREE.GLTFLoader) {
+        const loader = new THREE.GLTFLoader();
+        const files = []; for (let i = 1; i <= 8; i++) { files.push("u" + i + ".glb"); files.push("l" + i + ".glb"); }
+        const protos = {};
+        Promise.all(files.map(f => loader.loadAsync(TEETH_BASE + f).then(g => { protos[f] = normTooth(g.scene); }).catch(() => {})))
+          .then(() => { if (disposed) return; Object.keys(protos).length >= 8 ? placeReal(protos) : placeProcedural(); })
+          .catch(() => { if (!disposed) placeProcedural(); });
       } else {
-        buildProcedural();
+        placeProcedural();
       }
     }
-    ensureThree(!!JAW_GLB).then(build).catch(() => { if (ref.current) ref.current.innerHTML = '<div style="padding:46px;text-align:center;color:#9aa0b0;font-size:13px">3D-движок не загрузился — используйте 2D.</div>'; });
+    ensureThree(true).then(build).catch(() => { if (ref.current) ref.current.innerHTML = '<div style="padding:46px;text-align:center;color:#9aa0b0;font-size:13px">3D-движок не загрузился — используйте 2D.</div>'; });
     return () => { disposed = true; cleanup(); };
   }, [findings]);
   return React.createElement("div", null,
