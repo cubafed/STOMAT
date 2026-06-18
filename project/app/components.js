@@ -128,112 +128,167 @@ function toothHalfW(n) {
   return 10.5;                 // моляры 6,7,8
 }
 
-/* 2D-челюсть: зубы (коронка+корень) по анатомической дуге, дёсны, подсветка */
+/* анатомический глиф зуба по типу (коронка вниз +y, корень вверх -y, шейка y=0) */
+function toothPaths(n, w, ch, rh) {
+  const u = n % 10;
+  if (u <= 2) return { // резец — долото
+    crown: "M " + (-w) + " 0 L " + w + " 0 L " + (w * 0.96) + " " + (ch * 0.78) + " Q 0 " + (ch + 2) + " " + (-w * 0.96) + " " + (ch * 0.78) + " Z",
+    root: "M " + (-w * 0.5) + " 0 L " + (w * 0.5) + " 0 L 0 " + (-rh) + " Z" };
+  if (u === 3) return { // клык
+    crown: "M " + (-w) + " 0 L " + w + " 0 L " + (w * 0.6) + " " + (ch * 0.6) + " L 0 " + (ch + 4) + " L " + (-w * 0.6) + " " + (ch * 0.6) + " Z",
+    root: "M " + (-w * 0.5) + " 0 L " + (w * 0.5) + " 0 L 0 " + (-rh * 1.15) + " Z" };
+  if (u <= 5) return { // премоляр — 2 бугра
+    crown: "M " + (-w) + " 0 L " + w + " 0 L " + w + " " + (ch * 0.68) + " Q " + (w * 0.5) + " " + ch + " " + (w * 0.25) + " " + (ch * 0.72) + " Q 0 " + (ch * 0.52) + " " + (-w * 0.25) + " " + (ch * 0.72) + " Q " + (-w * 0.5) + " " + ch + " " + (-w) + " " + (ch * 0.68) + " Z",
+    root: "M " + (-w * 0.45) + " 0 L " + (w * 0.45) + " 0 L 0 " + (-rh) + " Z" };
+  return { // моляр — квадрат с буграми, 2 корня
+    crown: "M " + (-w) + " 0 L " + w + " 0 L " + w + " " + (ch * 0.72) + " Q " + (w * 0.66) + " " + ch + " " + (w * 0.4) + " " + (ch * 0.74) + " Q " + (w * 0.2) + " " + (ch * 0.92) + " 0 " + (ch * 0.74) + " Q " + (-w * 0.2) + " " + (ch * 0.92) + " " + (-w * 0.4) + " " + (ch * 0.74) + " Q " + (-w * 0.66) + " " + ch + " " + (-w) + " " + (ch * 0.72) + " Z",
+    root: "M " + (-w * 0.78) + " 0 L " + (-w * 0.12) + " 0 L " + (-w * 0.4) + " " + (-rh) + " Z M " + (w * 0.12) + " 0 L " + (w * 0.78) + " 0 L " + (w * 0.4) + " " + (-rh) + " Z" };
+}
+
+/* 2D-челюсть: анатомические зубы по дуге, дёсны, подсветка проблемных */
 function JawMap({ findings, hot, onTooth }) {
   const { map, legend } = jawFindingMap(findings);
-  const W = 540, H = 330, cx = W / 2, spanX = 232;
+  const W = 560, H = 340, cx = W / 2, spanX = 244;
   function layout(list, baseY, depth, lower) {
     return list.map((n, i) => {
       const t = (i / (list.length - 1)) * 2 - 1;
-      return { n, t, lower, x: cx + t * spanX, y: lower ? baseY - (1 - t * t) * depth : baseY + (1 - t * t) * depth, rot: (lower ? -1 : 1) * t * 54 };
+      return { n, t, lower, x: cx + t * spanX, y: lower ? baseY - (1 - t * t) * depth : baseY + (1 - t * t) * depth, rot: (lower ? -1 : 1) * t * 58 };
     });
   }
-  const up = layout(FDI_UPPER, 50, 80, false);
-  const lo = layout(FDI_LOWER, H - 50, 80, true);
+  const up = layout(FDI_UPPER, 54, 92, false);
+  const lo = layout(FDI_LOWER, H - 54, 92, true);
   const gum = pts => pts.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
   function tooth(p) {
     const d = map[p.n], c = d ? d.info.c : null, w = toothHalfW(p.n);
-    const crownH = 16, rootH = 16, rw = w * 0.72;
+    const paths = toothPaths(p.n, w, 17, 16);
     return React.createElement("g", { key: p.n, transform: "translate(" + p.x.toFixed(1) + "," + p.y.toFixed(1) + ")", style: { cursor: "pointer" }, onClick: () => onTooth && onTooth(p.n, d ? d.info : null) },
       React.createElement("g", { transform: "rotate(" + p.rot.toFixed(1) + ") scale(1," + (p.lower ? -1 : 1) + ")" },
-        React.createElement("path", { d: "M " + (-rw) + " -2 L " + rw + " -2 L " + (w >= 9 ? rw * 0.5 : 0) + " " + (-rootH) + (w >= 9 ? " M " + (-rw * 0.5) + " -2 L " + (-rw * 0.5) + " " + (-rootH) : "") + " Z", fill: d ? c : "#e7e2d4", opacity: 0.8 }),
-        React.createElement("rect", { x: -w, y: -2, width: 2 * w, height: crownH, rx: 5.5, fill: d ? (d.info.tint || "#fff") : "url(#enamelG)", stroke: d ? c : "#cdd2de", strokeWidth: d ? 2 : 1, style: hot === p.n ? { filter: "drop-shadow(0 0 8px " + c + ")" } : null })),
-      d && d.sev >= 3 ? React.createElement("circle", { cx: w * 0.85, cy: p.lower ? 14 : -14, r: 4.4, fill: c }) : null,
-      React.createElement("text", { x: 0, y: p.lower ? (rootH + 13) : -(rootH + 8), textAnchor: "middle", fontSize: 8.5, fontWeight: 700, fill: d ? c : "#a7adbb" }, p.n));
+        React.createElement("path", { d: paths.root, fill: d ? c : "#e6dfce", opacity: 0.82 }),
+        React.createElement("path", { d: paths.crown, fill: d ? (d.info.tint || "#fff") : "url(#enamelG)", stroke: d ? c : "#c9cedd", strokeWidth: d ? 2 : 1.1, strokeLinejoin: "round", style: hot === p.n ? { filter: "drop-shadow(0 0 8px " + c + ")" } : null })),
+      d && d.sev >= 3 ? React.createElement("circle", { cx: w * 0.9, cy: p.lower ? 15 : -15, r: 4.4, fill: c, stroke: "#fff", strokeWidth: 1 }) : null,
+      React.createElement("text", { x: 0, y: p.lower ? 30 : -22, textAnchor: "middle", fontSize: 8.5, fontWeight: 700, fill: d ? c : "#a7adbb" }, p.n));
   }
   return React.createElement("div", { className: "jawmap" },
-    React.createElement("svg", { viewBox: "0 0 " + W + " " + H, style: { width: "100%", maxWidth: 640, display: "block", margin: "0 auto" } },
+    React.createElement("svg", { viewBox: "0 0 " + W + " " + H, style: { width: "100%", maxWidth: 660, display: "block", margin: "0 auto" } },
       React.createElement("defs", null,
         React.createElement("linearGradient", { id: "enamelG", x1: 0, y1: 0, x2: 0, y2: 1 },
           React.createElement("stop", { offset: 0, stopColor: "#ffffff" }),
-          React.createElement("stop", { offset: 1, stopColor: "#eceef3" }))),
-      React.createElement("path", { d: gum(up), fill: "none", stroke: "#f1c2ca", strokeWidth: 16, strokeLinecap: "round", opacity: 0.45 }),
-      React.createElement("path", { d: gum(lo), fill: "none", stroke: "#f1c2ca", strokeWidth: 16, strokeLinecap: "round", opacity: 0.45 }),
-      React.createElement("text", { x: cx, y: 15, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".12em" }, "ВЕРХНЯЯ"),
+          React.createElement("stop", { offset: 1, stopColor: "#e7eaf1" }))),
+      React.createElement("path", { d: gum(up), fill: "none", stroke: "#eeb6bf", strokeWidth: 20, strokeLinecap: "round", opacity: 0.55 }),
+      React.createElement("path", { d: gum(lo), fill: "none", stroke: "#eeb6bf", strokeWidth: 20, strokeLinecap: "round", opacity: 0.55 }),
+      React.createElement("text", { x: cx, y: 16, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".12em" }, "ВЕРХНЯЯ"),
       up.map(tooth), lo.map(tooth),
       React.createElement("text", { x: cx, y: H - 4, textAnchor: "middle", fontSize: 10, fontWeight: 700, fill: "#9aa0b0", letterSpacing: ".12em" }, "НИЖНЯЯ")),
     jawLegend(legend));
 }
 
-/* 3D-челюсть: процедурная дуга зубов на three.js, подсветка проблемных, drag-вращение */
+/* Загрузка three.js (UMD + examples/js — версия с глобальным THREE и аддонами) */
+var JAW_GLB = (typeof window !== "undefined" && window.RADIX_CFG && window.RADIX_CFG.jawModel) || "";
+var THREE_BASE = "https://cdn.jsdelivr.net/npm/three@0.137.5/";
+function loadScriptOnce(src) {
+  return new Promise(function (res, rej) {
+    if (Array.prototype.some.call(document.scripts, function (s) { return s.src === src; })) return res();
+    var el = document.createElement("script"); el.src = src; el.onload = function () { res(); }; el.onerror = function () { rej(new Error("Не загрузился " + src)); };
+    document.head.appendChild(el);
+  });
+}
+function ensureThree(needGltf) {
+  return Promise.resolve()
+    .then(function () { return window.THREE ? null : loadScriptOnce(THREE_BASE + "build/three.min.js"); })
+    .then(function () { return window.THREE.OrbitControls ? null : loadScriptOnce(THREE_BASE + "examples/js/controls/OrbitControls.js"); })
+    .then(function () { return window.THREE.RoomEnvironment ? null : loadScriptOnce(THREE_BASE + "examples/js/environments/RoomEnvironment.js"); })
+    .then(function () { return (!needGltf || window.THREE.GLTFLoader) ? null : loadScriptOnce(THREE_BASE + "examples/js/loaders/GLTFLoader.js"); })
+    .then(function () { return window.THREE; });
+}
+
+/* 3D-челюсть: дёсны + зубы (или .glb-модель, если задана RADIX_CFG.jawModel), подсветка */
 function JawMap3D({ findings }) {
   const ref = useRef(null);
   const { legend } = jawFindingMap(findings);
   useEffect(() => {
     let frame = 0, disposed = false, cleanup = function () {};
-    function boot(THREE) {
+    const map = {};
+    (findings || []).forEach(f => { const n = toothNum(f.tooth); if (n == null) return; const info = findingInfo(f); const sev = f.severity || 2; if (!map[n] || sev > map[n].sev) map[n] = { c: info.c, sev }; });
+
+    function build(THREE) {
       const el = ref.current; if (disposed || !el) return;
-      const W = el.clientWidth || 480, H = 320;
+      const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(45, W / H, 0.1, 100); cam.position.set(0, 1.5, 15);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 4, 14);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
       el.innerHTML = ""; el.appendChild(renderer.domElement);
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x39414f, 0.75));
-      const keyL = new THREE.DirectionalLight(0xffffff, 0.95); keyL.position.set(5, 9, 8); scene.add(keyL);
-      const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.45); rimL.position.set(-6, 3, -7); scene.add(rimL);
-      const group = new THREE.Group(); group.rotation.x = -0.32; scene.add(group);
-      const map = {};
-      (findings || []).forEach(f => { const n = toothNum(f.tooth); if (n == null) return; const info = findingInfo(f); const sev = f.severity || 2; if (!map[n] || sev > map[n].sev) map[n] = { c: info.c, sev }; });
+      let envTex = null;
+      try { const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture; scene.environment = envTex; } catch (e) {}
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x404a5a, 0.55));
+      const keyL = new THREE.DirectionalLight(0xffffff, 0.8); keyL.position.set(5, 9, 8); scene.add(keyL);
+      const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.4); rimL.position.set(-6, 3, -7); scene.add(rimL);
+      const group = new THREE.Group(); group.rotation.x = -0.22; scene.add(group);
       const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      function makeTooth(n, d) {
-        const g = new THREE.Group(); const u = n % 10;
-        const wide = u >= 6 ? 1.3 : u === 3 ? 0.85 : u <= 2 ? 0.72 : 1.0;
-        const enamel = new PhysMat({ color: new THREE.Color(d ? d.c : 0xf3f1e9), roughness: 0.32, metalness: 0, clearcoat: 0.7, clearcoatRoughness: 0.35, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.22) : new THREE.Color(0x000000) });
-        const rootMat = new THREE.MeshStandardMaterial({ color: d ? new THREE.Color(d.c).multiplyScalar(0.82) : new THREE.Color(0xe6dfce), roughness: 0.78 });
-        const crown = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), enamel);
-        crown.scale.set(wide, 0.85, wide * 0.9); crown.position.y = 0.5; g.add(crown);
-        const roots = u >= 6 ? 2 : 1;
-        for (let r = 0; r < roots; r++) {
-          const root = new THREE.Mesh(new THREE.ConeGeometry(0.17 * wide, 1.05, 12), rootMat);
-          root.position.set(roots === 2 ? (r ? 0.2 * wide : -0.2 * wide) : 0, -0.32, 0);
-          root.rotation.z = Math.PI; g.add(root);
-        }
-        return g;
+      const SPAN = 6.2, DEPTH = 4.6, FWD = 1.2;
+      const archZ = t => -(1 - t * t) * DEPTH + FWD;
+      // дёсны — труба вдоль дуги
+      function gum(yBase) {
+        const pts = [];
+        for (let i = 0; i <= 20; i++) { const t = i / 20 * 2 - 1; pts.push(new THREE.Vector3(t * SPAN, yBase, archZ(t))); }
+        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.62, 14, false);
+        return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe2929e, roughness: 0.85 }));
       }
-      function row(list, yBase, upper) {
+      // зубы — коронки, торчащие из десны к линии смыкания
+      function row(list, yGum, upper) {
         list.forEach((n, i) => {
-          const t = (i / (list.length - 1)) * 2 - 1;
-          const g = makeTooth(n, map[n]);
-          g.position.set(t * 5.6, yBase, (1 - t * t) * 3.6);
-          if (upper) g.rotation.z = Math.PI;   // коронки вниз
-          g.rotation.y = -t * 0.5;             // лёгкий радиальный разворот
-          group.add(g);
+          const t = (i / (list.length - 1)) * 2 - 1; const d = map[n]; const u = n % 10;
+          const wide = u >= 6 ? 1.4 : u === 3 ? 0.8 : u <= 2 ? 0.72 : 1.0;
+          const enamel = new PhysMat({ color: new THREE.Color(d ? d.c : 0xf4f2ea), roughness: 0.25, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.25, emissive: d ? new THREE.Color(d.c).multiplyScalar(0.32) : new THREE.Color(0x000000) });
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 16), enamel);
+          m.scale.set(wide, 1.15, wide * 0.92);
+          m.position.set(t * SPAN, yGum + (upper ? -0.62 : 0.62), archZ(t));
+          group.add(m);
         });
       }
-      row(FDI_UPPER, 1.2, true); row(FDI_LOWER, -1.2, false);
-      let dragging = false, px = 0, py = 0;
-      const dom = renderer.domElement;
-      const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
-      const up = () => { dragging = false; };
-      const move = e => { if (!dragging) return; group.rotation.y += (e.clientX - px) * 0.01; group.rotation.x += (e.clientY - py) * 0.008; px = e.clientX; py = e.clientY; };
-      dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", up); window.addEventListener("pointermove", move);
-      function loop() { frame = requestAnimationFrame(loop); if (!dragging) group.rotation.y += 0.004; renderer.render(scene, cam); }
+      function buildProcedural() {
+        group.add(gum(1.05)); group.add(gum(-1.05));
+        row(FDI_UPPER, 1.05, true); row(FDI_LOWER, -1.05, false);
+      }
+
+      let controls = null;
+      if (THREE.OrbitControls) { controls = new THREE.OrbitControls(cam, renderer.domElement); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 8; controls.maxDistance = 24; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, FWD - 1); }
+      cam.lookAt(0, 0, FWD - 1);
+      function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); renderer.render(scene, cam); }
       loop();
-      cleanup = function () { cancelAnimationFrame(frame); dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", up); window.removeEventListener("pointermove", move); try { renderer.dispose(); } catch (e) {} if (el) el.innerHTML = ""; };
+      cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
+
+      // .glb-модель поверх (если задана) — иначе процедурная челюсть
+      if (JAW_GLB && THREE.GLTFLoader) {
+        new THREE.GLTFLoader().load(JAW_GLB, gltf => {
+          if (disposed) return;
+          while (group.children.length) group.remove(group.children[0]);
+          const model = gltf.scene;
+          const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+          const sc = 9 / Math.max(size.x, size.y, size.z); model.scale.setScalar(sc);
+          model.position.sub(center.multiplyScalar(sc));
+          const meshes = []; model.traverse(o => { if (o.isMesh) meshes.push(o); });
+          if (meshes.length >= 16) {
+            const cy = m => new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3());
+            const ys = meshes.map(m => cy(m).y), midY = (Math.max.apply(null, ys) + Math.min.apply(null, ys)) / 2;
+            const upM = [], loM = []; meshes.forEach((m, i) => (ys[i] >= midY ? upM : loM).push(m));
+            const sx = arr => arr.sort((a, b) => cy(a).x - cy(b).x);
+            sx(upM); sx(loM);
+            const hl = (arr, fdi) => arr.forEach((m, i) => { const d = map[fdi[Math.round(i / Math.max(1, arr.length - 1) * (fdi.length - 1))]]; if (d && m.material) { m.material = m.material.clone(); m.material.emissive = new THREE.Color(d.c); m.material.emissiveIntensity = 0.7; if (m.material.color) m.material.color = new THREE.Color(d.c); } });
+            hl(upM, FDI_UPPER); hl(loM, FDI_LOWER);
+          }
+          group.add(model);
+        }, undefined, () => { buildProcedural(); });
+      } else {
+        buildProcedural();
+      }
     }
-    if (window.THREE) boot(window.THREE);
-    else {
-      const s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js";
-      s.onload = () => boot(window.THREE);
-      s.onerror = () => { if (ref.current) ref.current.innerHTML = '<div style="padding:40px;text-align:center;color:#9aa0b0;font-size:13px">3D-библиотека не загрузилась — переключитесь на 2D.</div>'; };
-      document.head.appendChild(s);
-    }
+    ensureThree(!!JAW_GLB).then(build).catch(() => { if (ref.current) ref.current.innerHTML = '<div style="padding:46px;text-align:center;color:#9aa0b0;font-size:13px">3D-движок не загрузился — используйте 2D.</div>'; });
     return () => { disposed = true; cleanup(); };
   }, [findings]);
   return React.createElement("div", null,
-    React.createElement("div", { ref, className: "jaw3d", style: { width: "100%", height: 320, borderRadius: 14, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 18%, #222b44, #0d1220)", cursor: "grab" } }),
+    React.createElement("div", { ref, className: "jaw3d", style: { width: "100%", height: 340, borderRadius: 14, overflow: "hidden", background: "radial-gradient(120% 90% at 50% 16%, #243150, #0c1120)", cursor: "grab" } }),
     React.createElement("div", { style: { fontSize: 12, color: "var(--ink-4)", textAlign: "center", marginTop: 6 } }, "Зажмите и тяните, чтобы вращать"),
     jawLegend(legend));
 }
