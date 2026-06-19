@@ -217,7 +217,7 @@ function JawMap3D({ findings }) {
       const el = ref.current; if (disposed || !el) return;
       const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 3.2, 15);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.4, 13);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
@@ -227,15 +227,15 @@ function JawMap3D({ findings }) {
       scene.add(new THREE.HemisphereLight(0xffffff, 0x404a5a, 0.55));
       const keyL = new THREE.DirectionalLight(0xffffff, 0.8); keyL.position.set(5, 9, 8); scene.add(keyL);
       const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.4); rimL.position.set(-6, 3, -7); scene.add(rimL);
-      const group = new THREE.Group(); group.rotation.x = -0.22; scene.add(group);
+      const group = new THREE.Group(); group.rotation.x = -0.08; scene.add(group);
       const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      const SPAN = 5.6, DEPTH = 4.4, FWD = 1.2;
+      const SPAN = 4.7, DEPTH = 2.6, FWD = 0.9;
       const archZ = t => -(1 - t * t) * DEPTH + FWD;
       // дёсны — труба вдоль дуги
       function gum(yBase) {
         const pts = [];
         for (let i = 0; i <= 20; i++) { const t = i / 20 * 2 - 1; pts.push(new THREE.Vector3(t * SPAN, yBase, archZ(t))); }
-        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.6, 16, false);
+        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.92, 18, false);
         return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe09aa4, roughness: 0.82 }));
       }
       // запасные «коронки» (если 3D-модели зубов не загрузятся)
@@ -261,12 +261,12 @@ function JawMap3D({ findings }) {
       }
       // собрать реальную челюсть из анатомических моделей зубов
       function placeReal(protos) {
-        const TS = 1.7, YUP = 0.5, YLO = -0.5, TILT = 0.15, RADIAL = 0.5;
+        const TS = 1.15, YUP = 0.6, YLO = -0.6, TILT = 0.12, RADIAL = 0.32;
         function put(order, upper) {
           order.forEach((n, i) => {
             const file = (upper ? "u" : "l") + (n % 10) + ".glb"; const proto = protos[file]; if (!proto) return;
             const t = (i / (order.length - 1)) * 2 - 1; const u = n % 10;
-            const wide = u >= 6 ? 1.35 : u === 3 ? 0.85 : u <= 2 ? 0.82 : 1.0;
+            const wide = u >= 6 ? 1.2 : u === 3 ? 0.85 : u <= 2 ? 0.82 : 1.0;
             const th = proto.clone(true);
             th.scale.multiplyScalar(TS * wide);
             const q = Math.floor(n / 10), mirror = (q === 1 || q === 4);
@@ -282,11 +282,11 @@ function JawMap3D({ findings }) {
         put(FDI_UPPER, true); put(FDI_LOWER, false);
       }
 
-      group.add(gum(1.05)); group.add(gum(-1.05));   // дёсны всегда
+      group.add(gum(1.2)); group.add(gum(-1.2));   // дёсны всегда
       let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
       const dom = renderer.domElement;
       if (THREE.OrbitControls) {
-        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 8; controls.maxDistance = 24; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, FWD - 1);
+        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 7; controls.maxDistance = 22; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, -0.4);
       } else { // ручное вращение, если OrbitControls не загрузился
         const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
         const upE = () => { dragging = false; };
@@ -294,7 +294,7 @@ function JawMap3D({ findings }) {
         dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", upE); window.addEventListener("pointermove", mv);
         cleanupExtra = () => { dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", upE); window.removeEventListener("pointermove", mv); };
       }
-      cam.lookAt(0, 0, FWD - 1);
+      cam.lookAt(0, 0, -0.4);
       function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); else if (!dragging) group.rotation.y += 0.005; renderer.render(scene, cam); }
       loop();
       cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); cleanupExtra(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
