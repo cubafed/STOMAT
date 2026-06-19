@@ -217,7 +217,7 @@ function JawMap3D({ findings }) {
       const el = ref.current; if (disposed || !el) return;
       const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.4, 13);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.15, 10.5);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
@@ -227,9 +227,9 @@ function JawMap3D({ findings }) {
       scene.add(new THREE.HemisphereLight(0xffffff, 0x404a5a, 0.55));
       const keyL = new THREE.DirectionalLight(0xffffff, 0.8); keyL.position.set(5, 9, 8); scene.add(keyL);
       const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.4); rimL.position.set(-6, 3, -7); scene.add(rimL);
-      const group = new THREE.Group(); group.rotation.x = -0.08; scene.add(group);
+      const group = new THREE.Group(); group.rotation.x = 0; scene.add(group);
       const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      const SPAN = 4.7, DEPTH = 2.6, FWD = 0.9;
+      const SPAN = 3.7, DEPTH = 2.3, FWD = 0.8;
       const archZ = t => -(1 - t * t) * DEPTH + FWD;
       // дёсны — труба вдоль дуги
       function gum(yBase) {
@@ -255,13 +255,17 @@ function JawMap3D({ findings }) {
       // нормализовать модель зуба: центр в 0, единичная высота
       function normTooth(obj) {
         const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
-        obj.position.sub(center);
-        const h = size.y || size.x || size.z || 1; obj.scale.multiplyScalar(1 / h);
-        const wrap = new THREE.Group(); wrap.add(obj); return wrap;
+        obj.position.sub(center);                                  // центр в 0
+        const wrap = new THREE.Group(); wrap.add(obj);
+        const mx = Math.max(size.x, size.y, size.z) || 1;
+        if (size.z >= size.x && size.z >= size.y) wrap.rotation.x = -Math.PI / 2;     // длинная ось Z → вертикаль
+        else if (size.x >= size.y && size.x >= size.z) wrap.rotation.z = Math.PI / 2; // X → вертикаль
+        wrap.scale.setScalar(1 / mx);                              // единичная высота
+        const outer = new THREE.Group(); outer.add(wrap); return outer;
       }
       // собрать реальную челюсть из анатомических моделей зубов
       function placeReal(protos) {
-        const TS = 1.15, YUP = 0.6, YLO = -0.6, TILT = 0.12, RADIAL = 0.32;
+        const TS = 1.05, YUP = 0.52, YLO = -0.52, RADIAL = 0.25;
         function put(order, upper) {
           order.forEach((n, i) => {
             const file = (upper ? "u" : "l") + (n % 10) + ".glb"; const proto = protos[file]; if (!proto) return;
@@ -271,7 +275,7 @@ function JawMap3D({ findings }) {
             th.scale.multiplyScalar(TS * wide);
             const q = Math.floor(n / 10), mirror = (q === 1 || q === 4);
             if (mirror) th.scale.x *= -1;
-            th.rotation.x = upper ? Math.PI - TILT : TILT;   // коронкой к линии смыкания
+            th.rotation.x = upper ? Math.PI : 0;   // коронкой к линии смыкания (низ — как есть)
             th.rotation.y = (mirror ? 1 : -1) * Math.abs(t) * RADIAL;
             th.position.set(t * SPAN, upper ? YUP : YLO, archZ(t));
             const d = map[n];
@@ -282,11 +286,11 @@ function JawMap3D({ findings }) {
         put(FDI_UPPER, true); put(FDI_LOWER, false);
       }
 
-      group.add(gum(1.2)); group.add(gum(-1.2));   // дёсны всегда
+      group.add(gum(1.0)); group.add(gum(-1.0));   // дёсны всегда
       let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
       const dom = renderer.domElement;
       if (THREE.OrbitControls) {
-        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 7; controls.maxDistance = 22; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, -0.4);
+        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 7; controls.maxDistance = 22; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, -0.35);
       } else { // ручное вращение, если OrbitControls не загрузился
         const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
         const upE = () => { dragging = false; };
@@ -294,7 +298,7 @@ function JawMap3D({ findings }) {
         dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", upE); window.addEventListener("pointermove", mv);
         cleanupExtra = () => { dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", upE); window.removeEventListener("pointermove", mv); };
       }
-      cam.lookAt(0, 0, -0.4);
+      cam.lookAt(0, 0, -0.35);
       function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); else if (!dragging) group.rotation.y += 0.005; renderer.render(scene, cam); }
       loop();
       cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); cleanupExtra(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
