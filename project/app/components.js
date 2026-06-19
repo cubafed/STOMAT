@@ -217,7 +217,7 @@ function JawMap3D({ findings }) {
       const el = ref.current; if (disposed || !el) return;
       const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.15, 10.5);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.3, 10.5);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
@@ -235,7 +235,7 @@ function JawMap3D({ findings }) {
       function gum(yBase) {
         const pts = [];
         for (let i = 0; i <= 20; i++) { const t = i / 20 * 2 - 1; pts.push(new THREE.Vector3(t * SPAN, yBase, archZ(t))); }
-        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.92, 18, false);
+        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.42, 18, false);
         return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe09aa4, roughness: 0.82 }));
       }
       // запасные «коронки» (если 3D-модели зубов не загрузятся)
@@ -265,14 +265,14 @@ function JawMap3D({ findings }) {
       }
       // собрать реальную челюсть из анатомических моделей зубов
       function placeReal(protos) {
-        const TS = 1.05, YUP = 0.52, YLO = -0.52, RADIAL = 0.25;
+        const TS = 1.2, YUP = 0.6, YLO = -0.6, RADIAL = 0.12;
         function put(order, upper) {
           order.forEach((n, i) => {
             const file = (upper ? "u" : "l") + (n % 10) + ".glb"; const proto = protos[file]; if (!proto) return;
             const t = (i / (order.length - 1)) * 2 - 1; const u = n % 10;
             const wide = u >= 6 ? 1.2 : u === 3 ? 0.85 : u <= 2 ? 0.82 : 1.0;
             const th = proto.clone(true);
-            th.scale.multiplyScalar(TS * wide);
+            th.scale.set(TS * wide, TS, TS * wide);   // ширина — по типу, высота единая
             const q = Math.floor(n / 10), mirror = (q === 1 || q === 4);
             if (mirror) th.scale.x *= -1;
             th.rotation.x = upper ? Math.PI : 0;   // коронкой к линии смыкания (низ — как есть)
@@ -286,7 +286,7 @@ function JawMap3D({ findings }) {
         put(FDI_UPPER, true); put(FDI_LOWER, false);
       }
 
-      group.add(gum(1.0)); group.add(gum(-1.0));   // дёсны всегда
+      group.add(gum(1.12)); group.add(gum(-1.12));   // дёсны всегда
       let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
       const dom = renderer.domElement;
       if (THREE.OrbitControls) {
