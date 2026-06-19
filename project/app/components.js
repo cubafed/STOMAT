@@ -217,7 +217,7 @@ function JawMap3D({ findings }) {
       const el = ref.current; if (disposed || !el) return;
       const W = el.clientWidth || 480, H = 340;
       const scene = new THREE.Scene();
-      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 1.3, 10.5);
+      const cam = new THREE.PerspectiveCamera(42, W / H, 0.1, 100); cam.position.set(0, 4.5, 8.5);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
@@ -229,13 +229,13 @@ function JawMap3D({ findings }) {
       const rimL = new THREE.DirectionalLight(0x9fc0ff, 0.4); rimL.position.set(-6, 3, -7); scene.add(rimL);
       const group = new THREE.Group(); group.rotation.x = 0; scene.add(group);
       const PhysMat = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      const SPAN = 3.7, DEPTH = 2.3, FWD = 0.8;
+      const SPAN = 3.9, DEPTH = 2.7, FWD = 1.0;
       const archZ = t => -(1 - t * t) * DEPTH + FWD;
       // дёсны — труба вдоль дуги
       function gum(yBase) {
         const pts = [];
         for (let i = 0; i <= 20; i++) { const t = i / 20 * 2 - 1; pts.push(new THREE.Vector3(t * SPAN, yBase, archZ(t))); }
-        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.42, 18, false);
+        const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.25, 18, false);
         return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xe09aa4, roughness: 0.82 }));
       }
       // запасные «коронки» (если 3D-модели зубов не загрузятся)
@@ -265,7 +265,7 @@ function JawMap3D({ findings }) {
       }
       // собрать реальную челюсть из анатомических моделей зубов
       function placeReal(protos) {
-        const TS = 1.2, YUP = 0.6, YLO = -0.6, RADIAL = 0.12;
+        const TS = 1.5, YUP = 0.78, YLO = -0.78, RADIAL = 0.1;
         function put(order, upper) {
           order.forEach((n, i) => {
             const file = (upper ? "u" : "l") + (n % 10) + ".glb"; const proto = protos[file]; if (!proto) return;
@@ -286,11 +286,11 @@ function JawMap3D({ findings }) {
         put(FDI_UPPER, true); put(FDI_LOWER, false);
       }
 
-      group.add(gum(1.12)); group.add(gum(-1.12));   // дёсны всегда
+      group.add(gum(1.0)); group.add(gum(-1.0));   // дёсны всегда
       let controls = null, dragging = false, px = 0, py = 0, cleanupExtra = function () {};
       const dom = renderer.domElement;
       if (THREE.OrbitControls) {
-        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 7; controls.maxDistance = 22; controls.autoRotate = true; controls.autoRotateSpeed = 0.7; controls.target.set(0, 0, -0.35);
+        controls = new THREE.OrbitControls(cam, dom); controls.enablePan = false; controls.enableDamping = true; controls.minDistance = 7; controls.maxDistance = 22; controls.autoRotate = true; controls.autoRotateSpeed = 0.6; controls.target.set(0, 0, -0.7);
       } else { // ручное вращение, если OrbitControls не загрузился
         const down = e => { dragging = true; px = e.clientX; py = e.clientY; };
         const upE = () => { dragging = false; };
@@ -298,7 +298,7 @@ function JawMap3D({ findings }) {
         dom.addEventListener("pointerdown", down); window.addEventListener("pointerup", upE); window.addEventListener("pointermove", mv);
         cleanupExtra = () => { dom.removeEventListener("pointerdown", down); window.removeEventListener("pointerup", upE); window.removeEventListener("pointermove", mv); };
       }
-      cam.lookAt(0, 0, -0.35);
+      cam.lookAt(0, 0, -0.7);
       function loop() { frame = requestAnimationFrame(loop); if (controls) controls.update(); else if (!dragging) group.rotation.y += 0.005; renderer.render(scene, cam); }
       loop();
       cleanup = function () { cancelAnimationFrame(frame); if (controls) controls.dispose(); cleanupExtra(); try { renderer.dispose(); } catch (e) {} if (envTex) { try { envTex.dispose(); } catch (e) {} } if (el) el.innerHTML = ""; };
